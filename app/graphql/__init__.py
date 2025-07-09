@@ -1,0 +1,3 @@
+"""
+GraphQL package initialization.
+"""
