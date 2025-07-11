@@ -281,3 +281,21 @@ class Mutation:
         db.commit()
         
         return SensorReading.from_model(model)
+    
+    @strawberry.mutation
+    def delete_sensor_readings(self, info: Info, sensor_id: str) -> bool:
+        """Delete all sensor readings for a specific sensor."""
+        db: Session = next(get_db())
+        
+        try:
+            # Delete all sensor readings for the given sensor_id
+            deleted_count = db.query(SensorReadingModel).filter(
+                SensorReadingModel.sensor_id == sensor_id
+            ).delete()
+            
+            db.commit()
+            
+            return deleted_count > 0
+        except Exception as e:
+            db.rollback()
+            raise e
