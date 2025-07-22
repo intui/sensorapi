@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     
     # Database Configuration
     DATABASE_URL: str
+    TEST_DATABASE_URL: Optional[str] = None
     
     # Security Configuration
     SECRET_KEY: str = "your-secret-key-change-in-production"

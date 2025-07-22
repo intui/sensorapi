@@ -10,13 +10,43 @@ import uuid
 
 from sqlalchemy import (
     Column, String, DateTime, Float, Integer, Text, Boolean,
-    ForeignKey, JSON, UniqueConstraint, Index
+    ForeignKey, JSON, UniqueConstraint, Index, TypeDecorator
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.database.database import Base
+from app.core.config import settings
+
+
+class SQLiteUUID(TypeDecorator):
+    """A UUID type that handles both PostgreSQL and SQLite databases."""
+    impl = String
+    cache_ok = True
+
+    def load_dialect_impl(self, dialect):
+        if dialect.name == 'postgresql':
+            return dialect.type_descriptor(UUID(as_uuid=True))
+        else:
+            return dialect.type_descriptor(String(36))
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return value
+        elif dialect.name == 'postgresql':
+            return value
+        else:
+            return str(value)
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return value
+        elif dialect.name == 'postgresql':
+            return value
+        else:
+            import uuid
+            return uuid.UUID(value) if isinstance(value, str) else value
 
 
 class SensorType(Base):
@@ -26,7 +56,7 @@ class SensorType(Base):
     """
     __tablename__ = "api_sensor_types"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(SQLiteUUID, primary_key=True, default=uuid.uuid4)
     name = Column(String(100), unique=True, nullable=False, index=True)
     description = Column(Text)
     unit = Column(String(20))  # e.g., "°C", "%", "Pa", "ppm"
@@ -50,12 +80,12 @@ class Location(Base):
     """
     __tablename__ = "api_locations"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(SQLiteUUID, primary_key=True, default=uuid.uuid4)
     name = Column(String(200), nullable=False, index=True)
     description = Column(Text)
     
     # Hierarchical structure
-    parent_id = Column(UUID(as_uuid=True), ForeignKey("api_locations.id"))
+    parent_id = Column(SQLiteUUID, ForeignKey("api_locations.id"))
     parent = relationship("Location", remote_side=[id], back_populates="children")
     children = relationship("Location", back_populates="parent")
     
@@ -86,14 +116,14 @@ class Sensor(Base):
     """
     __tablename__ = "api_sensors"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(SQLiteUUID, primary_key=True, default=uuid.uuid4)
     device_id = Column(String(100), unique=True, nullable=False, index=True)  # Hardware device ID
     name = Column(String(200), nullable=False)
     description = Column(Text)
     
     # Foreign keys
-    sensor_type_id = Column(UUID(as_uuid=True), ForeignKey("api_sensor_types.id"), nullable=False)
-    location_id = Column(UUID(as_uuid=True), ForeignKey("api_locations.id"), nullable=False)
+    sensor_type_id = Column(SQLiteUUID, ForeignKey("api_sensor_types.id"), nullable=False)
+    location_id = Column(SQLiteUUID, ForeignKey("api_locations.id"), nullable=False)
     
     # Device information
     manufacturer = Column(String(100))
@@ -138,8 +168,8 @@ class SensorReading(Base):
     """
     __tablename__ = "api_sensor_readings"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    sensor_id = Column(UUID(as_uuid=True), ForeignKey("api_sensors.id"), nullable=False)
+    id = Column(SQLiteUUID, primary_key=True, default=uuid.uuid4)
+    sensor_id = Column(SQLiteUUID, ForeignKey("api_sensors.id"), nullable=False)
     
     # Reading data
     value = Column(Float, nullable=False)  # The main sensor value
@@ -167,9 +197,9 @@ class Alert(Base):
     """
     __tablename__ = "api_alerts"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    sensor_id = Column(UUID(as_uuid=True), ForeignKey("api_sensors.id"), nullable=False)
-    reading_id = Column(UUID(as_uuid=True), ForeignKey("api_sensor_readings.id"))
+    id = Column(SQLiteUUID, primary_key=True, default=uuid.uuid4)
+    sensor_id = Column(SQLiteUUID, ForeignKey("api_sensors.id"), nullable=False)
+    reading_id = Column(SQLiteUUID, ForeignKey("api_sensor_readings.id"))
     
     # Alert information
     alert_type = Column(String(50), nullable=False)  # threshold, anomaly, offline, etc.
