@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 import uuid
 
 # Production API URL - update this with your actual Vercel deployment URL
-PRODUCTION_API_URL = "https://sensorapi-cpbpps2rw-widos-projects.vercel.app"
+PRODUCTION_API_URL = "https://sensorapi-i89wpp801-widos-projects.vercel.app"
 
 
 class ProductionClient:
@@ -99,7 +99,7 @@ def test_data_factory():
             return {
                 "sensorId": sensor_id,
                 "value": kwargs.get("value", 25.5),
-                "rawValue": kwargs.get("rawValue", "25.5"),
+                "rawValue": kwargs.get("rawValue", 25.5),
                 "timestamp": kwargs.get("timestamp", datetime.utcnow().isoformat() + "Z"),
                 **kwargs
             }
@@ -263,6 +263,7 @@ def graphql_queries():
         mutation CreateSensorReading($input: CreateSensorReadingInput!) {
             createSensorReading(input: $input) {
                 id
+                sensorId
                 value
                 rawValue
                 timestamp

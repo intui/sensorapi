@@ -51,7 +51,7 @@ class TestProductionGraphQLSchema:
             "query": graphql_queries.INTROSPECTION
         })
         
-        from conftest_production import assert_graphql_success
+        from conftest import assert_graphql_success
         data = assert_graphql_success(response, "__schema")
         
         # Verify expected types exist
@@ -67,7 +67,7 @@ class TestProductionGraphQLSchema:
             "query": "query { invalidField }"
         })
         
-        from conftest_production import assert_graphql_error
+        from conftest import assert_graphql_error
         errors = assert_graphql_error(response)
         assert len(errors) > 0
 
@@ -91,7 +91,7 @@ class TestProductionSensorTypeCRUD:
             "variables": {"input": sensor_type_input}
         })
         
-        from conftest_production import assert_graphql_success
+        from conftest import assert_graphql_success
         data = assert_graphql_success(response, "createSensorType")
         
         created_sensor_type = data["createSensorType"]
@@ -121,7 +121,7 @@ class TestProductionSensorTypeCRUD:
             "variables": {"activeOnly": True}
         })
         
-        from conftest_production import assert_graphql_success
+        from conftest import assert_graphql_success
         data = assert_graphql_success(response, "sensorTypes")
         
         sensor_types = data["sensorTypes"]
@@ -151,7 +151,7 @@ class TestProductionLocationCRUD:
             "variables": {"input": location_input}
         })
         
-        from conftest_production import assert_graphql_success
+        from conftest import assert_graphql_success
         data = assert_graphql_success(response, "createLocation")
         
         created_location = data["createLocation"]
@@ -200,7 +200,7 @@ class TestProductionCompleteWorkflow:
             "variables": {"input": sensor_type_input}
         })
         
-        from conftest_production import assert_graphql_success
+        from conftest import assert_graphql_success
         data = assert_graphql_success(response, "createSensorType")
         sensor_type = data["createSensorType"]
         cleanup_test_data("sensor_type", sensor_type["id"])
@@ -300,7 +300,7 @@ class TestProductionPerformance:
         assert response.status_code == 200
         assert response_time < 10.0, f"GraphQL query time {response_time:.2f}s is too slow"
         
-        from conftest_production import assert_graphql_success
+        from conftest import assert_graphql_success
         data = assert_graphql_success(response, "sensorTypes")
         assert isinstance(data["sensorTypes"], list)
 
@@ -317,7 +317,7 @@ class TestProductionErrorHandling:
             "variables": {"input": {"description": "Missing name field"}}
         })
         
-        from conftest_production import assert_graphql_error
+        from conftest import assert_graphql_error
         errors = assert_graphql_error(response)
         assert len(errors) > 0
     
@@ -331,6 +331,6 @@ class TestProductionErrorHandling:
         })
         
         # Should return success with null data for non-existent entity
-        from conftest_production import assert_graphql_success
+        from conftest import assert_graphql_success
         data = assert_graphql_success(response, "sensorType")
         assert data["sensorType"] is None
