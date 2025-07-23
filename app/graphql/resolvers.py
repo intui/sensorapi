@@ -221,8 +221,6 @@ class Mutation:
                 value=input.value,
                 raw_value=input.raw_value,
                 timestamp=input.timestamp or datetime.utcnow(),
-                quality_score=input.quality_score,
-                metadata=input.metadata,
             )
             db.add(model)
             db.commit()
