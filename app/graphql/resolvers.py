@@ -144,6 +144,32 @@ class Query:
             return [Alert.from_model(model) for model in models]
 
 
+# Nested field resolvers
+@strawberry.field
+def resolve_sensor_type(sensor: Sensor, info: Info) -> Optional[SensorType]:
+    """Resolve the sensor_type field for a Sensor."""
+    with get_db_session() as db:
+        model = db.query(SensorTypeModel).filter(
+            SensorTypeModel.id == sensor.sensor_type_id
+        ).first()
+        return SensorType.from_model(model) if model else None
+
+
+@strawberry.field
+def resolve_location(sensor: Sensor, info: Info) -> Optional[Location]:
+    """Resolve the location field for a Sensor."""
+    with get_db_session() as db:
+        model = db.query(LocationModel).filter(
+            LocationModel.id == sensor.location_id
+        ).first()
+        return Location.from_model(model) if model else None
+
+
+# Add the resolvers to the Sensor type
+Sensor.sensor_type = resolve_sensor_type
+Sensor.location = resolve_location
+
+
 @strawberry.type
 class Mutation:
     """GraphQL mutation operations."""
@@ -221,6 +247,16 @@ class Mutation:
             db.commit()
             db.refresh(model)
             return SensorReading.from_model(model)
+    
+    @strawberry.mutation
+    def delete_sensor_readings(self, info: Info, sensor_id: str) -> int:
+        """Delete all sensor readings for a given sensor. Returns count of deleted readings."""
+        with get_db_session() as db:
+            deleted_count = db.query(SensorReadingModel).filter(
+                SensorReadingModel.sensor_id == sensor_id
+            ).delete()
+            db.commit()
+            return deleted_count
 
 
 # Create schema
