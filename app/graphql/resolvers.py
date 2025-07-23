@@ -174,13 +174,11 @@ class Mutation:
                 description=input.description,
                 city=input.city,
                 country=input.country,
-                state_province=input.state_province,
                 postal_code=input.postal_code,
                 address=input.address,
                 latitude=input.latitude,
                 longitude=input.longitude,
-                elevation=input.elevation,
-                timezone=input.timezone,
+                altitude=input.altitude,
                 parent_id=input.parent_id,
             )
             db.add(model)
@@ -203,9 +201,6 @@ class Mutation:
                 firmware_version=input.firmware_version,
                 hardware_version=input.hardware_version,
                 sampling_interval=input.sampling_interval,
-                calibration_date=input.calibration_date,
-                calibration_offset=input.calibration_offset,
-                calibration_scale=input.calibration_scale,
             )
             db.add(model)
             db.commit()
