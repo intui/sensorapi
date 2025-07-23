@@ -8,14 +8,15 @@ from sqlalchemy.orm import sessionmaker, Session
 
 from app.core.config import settings
 
-# Create database engine with connection pooling
+# Create database engine with serverless-optimized connection pooling
 engine = create_engine(
     settings.DATABASE_URL,
     echo=settings.DEBUG,  # Log SQL queries in debug mode
-    pool_size=5,  # Limit connection pool size
-    max_overflow=10,  # Allow temporary overflow
+    pool_size=1,  # Single connection for serverless (lambda functions)
+    max_overflow=0,  # No overflow in serverless to prevent connection leaks
     pool_pre_ping=True,  # Validate connections before use
-    pool_recycle=300,  # Recycle connections every 5 minutes
+    pool_recycle=60,  # Recycle connections quickly in serverless (1 minute)
+    connect_args={'connect_timeout': 10},  # Quick connection timeout
 )
 
 # Create session factory
