@@ -1,16 +1,21 @@
 """
 Database connection and session management.
 """
+from contextlib import contextmanager
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, Session
 
 from app.core.config import settings
 
-# Create database engine
+# Create database engine with connection pooling
 engine = create_engine(
     settings.DATABASE_URL,
     echo=settings.DEBUG,  # Log SQL queries in debug mode
+    pool_size=5,  # Limit connection pool size
+    max_overflow=10,  # Allow temporary overflow
+    pool_pre_ping=True,  # Validate connections before use
+    pool_recycle=300,  # Recycle connections every 5 minutes
 )
 
 # Create session factory
@@ -21,9 +26,23 @@ Base = declarative_base()
 
 
 def get_db():
-    """Dependency to get database session."""
+    """Dependency to get database session (for FastAPI dependency injection)."""
     db = SessionLocal()
     try:
         yield db
+    finally:
+        db.close()
+
+
+@contextmanager
+def get_db_session():
+    """Context manager for database sessions (for manual session management)."""
+    db = SessionLocal()
+    try:
+        yield db
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()
