@@ -8,15 +8,16 @@ from sqlalchemy.orm import sessionmaker, Session
 
 from app.core.config import settings
 
-# Create database engine with serverless-optimized connection pooling
+# Create database engine with NullPool for serverless (no connection pooling)
 engine = create_engine(
     settings.DATABASE_URL,
     echo=settings.DEBUG,  # Log SQL queries in debug mode
-    pool_size=1,  # Single connection for serverless (lambda functions)
-    max_overflow=0,  # No overflow in serverless to prevent connection leaks
-    pool_pre_ping=True,  # Validate connections before use
-    pool_recycle=60,  # Recycle connections quickly in serverless (1 minute)
-    connect_args={'connect_timeout': 10},  # Quick connection timeout
+    poolclass=None,  # Use NullPool - create fresh connections for each request
+    pool_pre_ping=False,  # Don't ping since we're creating fresh connections
+    connect_args={
+        'connect_timeout': 10,  # Quick connection timeout
+        'application_name': 'sensorapi-vercel'  # Identify our app in DB logs
+    },
 )
 
 # Create session factory
