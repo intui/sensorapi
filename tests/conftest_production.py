@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 import uuid
 
 # Production API URL - update this with your actual Vercel deployment URL
-PRODUCTION_API_URL = "https://sensorapi-i89wpp801-widos-projects.vercel.app"
+PRODUCTION_API_URL = "https://sensorapi-two.vercel.app"
 
 
 class ProductionClient:
