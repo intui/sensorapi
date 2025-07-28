@@ -109,14 +109,22 @@ class Sensor:
     @strawberry.field
     def sensor_type(self, info: Info) -> Optional[SensorType]:
         """Get the sensor type for this sensor."""
-        # This will be resolved by the resolver
-        return None
+        from app.database.database import get_db_session
+        with get_db_session() as db:
+            model = db.query(SensorTypeModel).filter(
+                SensorTypeModel.id == self.sensor_type_id
+            ).first()
+            return SensorType.from_model(model) if model else None
 
     @strawberry.field
     def location(self, info: Info) -> Optional[Location]:
         """Get the location for this sensor."""
-        # This will be resolved by the resolver
-        return None
+        from app.database.database import get_db_session
+        with get_db_session() as db:
+            model = db.query(LocationModel).filter(
+                LocationModel.id == self.location_id
+            ).first()
+            return Location.from_model(model) if model else None
 
     @strawberry.field
     def latest_reading(self, info: Info) -> Optional["SensorReading"]:
@@ -162,8 +170,12 @@ class SensorReading:
     @strawberry.field
     def sensor(self, info: Info) -> Optional[Sensor]:
         """Get the sensor for this reading."""
-        # This will be resolved by the resolver
-        return None
+        from app.database.database import get_db_session
+        with get_db_session() as db:
+            model = db.query(SensorModel).filter(
+                SensorModel.id == self.sensor_id
+            ).first()
+            return Sensor.from_model(model) if model else None
 
     @classmethod
     def from_model(cls, model: SensorReadingModel) -> "SensorReading":
