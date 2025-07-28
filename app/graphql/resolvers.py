@@ -165,9 +165,20 @@ def resolve_location(sensor: Sensor, info: Info) -> Optional[Location]:
         return Location.from_model(model) if model else None
 
 
-# Add the resolvers to the Sensor type
+@strawberry.field
+def resolve_sensor_for_reading(reading: SensorReading, info: Info) -> Optional[Sensor]:
+    """Resolve the sensor field for a SensorReading."""
+    with get_db_session() as db:
+        model = db.query(SensorModel).filter(
+            SensorModel.id == reading.sensor_id
+        ).first()
+        return Sensor.from_model(model) if model else None
+
+
+# Add the resolvers to the respective types
 Sensor.sensor_type = resolve_sensor_type
 Sensor.location = resolve_location
+SensorReading.sensor = resolve_sensor_for_reading
 
 
 @strawberry.type
