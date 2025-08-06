@@ -31,18 +31,28 @@ const Sensors: React.FC = () => {
   const { data: locationsData } = useQuery(GET_LOCATIONS);
   
   const [createSensor, { loading: creating }] = useMutation(CREATE_SENSOR, {
-    onCompleted: () => {
+    onCompleted: (data) => {
+      console.log('Create mutation completed:', data);
       setShowForm(false);
       resetForm();
       refetch();
     },
+    onError: (error) => {
+      console.error('Create mutation error:', error);
+      alert('Failed to create sensor: ' + error.message);
+    },
   });
 
   const [updateSensor, { loading: updating }] = useMutation(UPDATE_SENSOR, {
-    onCompleted: () => {
+    onCompleted: (data) => {
+      console.log('Update mutation completed:', data);
       setEditingItem(null);
       resetForm();
       refetch();
+    },
+    onError: (error) => {
+      console.error('Update mutation error:', error);
+      alert('Failed to update sensor: ' + error.message);
     },
   });
 
@@ -69,7 +79,20 @@ const Sensors: React.FC = () => {
   };
 
   const handleEdit = (sensor: Sensor) => {
+    console.log('Editing sensor:', sensor);
     setFormData({
+      deviceId: sensor.deviceId,
+      name: sensor.name,
+      description: sensor.description || '',
+      sensorTypeId: sensor.sensorType.id,
+      locationId: sensor.location.id,
+      manufacturer: sensor.manufacturer || '',
+      model: sensor.model || '',
+      firmwareVersion: sensor.firmwareVersion || '',
+      hardwareVersion: sensor.hardwareVersion || '',
+      samplingInterval: sensor.samplingInterval,
+    });
+    console.log('Form data set:', {
       deviceId: sensor.deviceId,
       name: sensor.name,
       description: sensor.description || '',
@@ -90,31 +113,38 @@ const Sensors: React.FC = () => {
     resetForm();
   };
 
-    const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Submitting form:', { editingItem: !!editingItem, formData });
+    
     try {
       if (editingItem) {
         // Update existing sensor
-        await updateSensor({
-          variables: {
-            id: editingItem.id,
-            input: {
-              deviceId: formData.deviceId,
-              name: formData.name,
-              description: formData.description || null,
-              sensorTypeId: formData.sensorTypeId,
-              locationId: formData.locationId,
-              manufacturer: formData.manufacturer || null,
-              model: formData.model || null,
-              firmwareVersion: formData.firmwareVersion || null,
-              hardwareVersion: formData.hardwareVersion || null,
-              samplingInterval: formData.samplingInterval || null,
-            },
+        console.log('Updating sensor with ID:', editingItem.id);
+        const updateVariables = {
+          id: editingItem.id,
+          input: {
+            deviceId: formData.deviceId,
+            name: formData.name,
+            description: formData.description || null,
+            sensorTypeId: formData.sensorTypeId,
+            locationId: formData.locationId,
+            manufacturer: formData.manufacturer || null,
+            model: formData.model || null,
+            firmwareVersion: formData.firmwareVersion || null,
+            hardwareVersion: formData.hardwareVersion || null,
+            samplingInterval: formData.samplingInterval || null,
           },
+        };
+        console.log('Update variables:', updateVariables);
+        const result = await updateSensor({
+          variables: updateVariables,
         });
+        console.log('Update result:', result);
       } else {
         // Create new sensor
-        await createSensor({
+        console.log('Creating new sensor');
+        const result = await createSensor({
           variables: {
             input: {
               ...formData,
@@ -127,9 +157,11 @@ const Sensors: React.FC = () => {
             },
           },
         });
+        console.log('Create result:', result);
       }
     } catch (error) {
       console.error('Failed to save sensor:', error);
+      // Error is already handled by the mutation's onError callback
     }
   };
 
