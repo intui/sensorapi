@@ -43,6 +43,9 @@ export const CREATE_SENSOR = gql`
       description
       manufacturer
       model
+      firmwareVersion
+      hardwareVersion
+      samplingInterval
       isActive
       isOnline
       createdAt
@@ -126,6 +129,9 @@ export const UPDATE_SENSOR = gql`
       description
       manufacturer
       model
+      firmwareVersion
+      hardwareVersion
+      samplingInterval
       isActive
       isOnline
       createdAt

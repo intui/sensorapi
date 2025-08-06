@@ -31,6 +31,9 @@ export interface Sensor {
   description?: string;
   manufacturer?: string;
   model?: string;
+  firmwareVersion?: string;
+  hardwareVersion?: string;
+  samplingInterval?: number;
   isActive: boolean;
   isOnline: boolean;
   lastSeen?: string;

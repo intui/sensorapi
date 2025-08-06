@@ -43,6 +43,9 @@ export const GET_SENSORS = gql`
       description
       manufacturer
       model
+      firmwareVersion
+      hardwareVersion
+      samplingInterval
       isActive
       isOnline
       lastSeen
