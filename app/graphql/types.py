@@ -3,21 +3,21 @@ GraphQL types and schema definitions for sensor data API.
 """
 from datetime import datetime
 from typing import List, Optional
+
 import strawberry
 from strawberry.types import Info
 
-from app.database.models import (
-    SensorType as SensorTypeModel,
-    Location as LocationModel,
-    Sensor as SensorModel,
-    SensorReading as SensorReadingModel,
-    Alert as AlertModel,
-)
+from app.database.models import Alert as AlertModel
+from app.database.models import Location as LocationModel
+from app.database.models import Sensor as SensorModel
+from app.database.models import SensorReading as SensorReadingModel
+from app.database.models import SensorType as SensorTypeModel
 
 
 @strawberry.type
 class SensorType:
     """GraphQL type for sensor types."""
+
     id: str
     name: str
     description: Optional[str]
@@ -48,6 +48,7 @@ class SensorType:
 @strawberry.type
 class Location:
     """GraphQL type for sensor locations."""
+
     id: str
     name: str
     description: Optional[str]
@@ -86,6 +87,7 @@ class Location:
 @strawberry.type
 class Sensor:
     """GraphQL type for sensors."""
+
     id: str
     device_id: str
     name: str
@@ -110,20 +112,26 @@ class Sensor:
     def sensor_type(self, info: Info) -> Optional[SensorType]:
         """Get the sensor type for this sensor."""
         from app.database.database import get_db_session
+
         with get_db_session() as db:
-            model = db.query(SensorTypeModel).filter(
-                SensorTypeModel.id == self.sensor_type_id
-            ).first()
+            model = (
+                db.query(SensorTypeModel)
+                .filter(SensorTypeModel.id == self.sensor_type_id)
+                .first()
+            )
             return SensorType.from_model(model) if model else None
 
     @strawberry.field
     def location(self, info: Info) -> Optional[Location]:
         """Get the location for this sensor."""
         from app.database.database import get_db_session
+
         with get_db_session() as db:
-            model = db.query(LocationModel).filter(
-                LocationModel.id == self.location_id
-            ).first()
+            model = (
+                db.query(LocationModel)
+                .filter(LocationModel.id == self.location_id)
+                .first()
+            )
             return Location.from_model(model) if model else None
 
     @strawberry.field
@@ -160,6 +168,7 @@ class Sensor:
 @strawberry.type
 class SensorReading:
     """GraphQL type for sensor readings."""
+
     id: str
     sensor_id: str
     value: float
@@ -171,10 +180,11 @@ class SensorReading:
     def sensor(self, info: Info) -> Optional[Sensor]:
         """Get the sensor for this reading."""
         from app.database.database import get_db_session
+
         with get_db_session() as db:
-            model = db.query(SensorModel).filter(
-                SensorModel.id == self.sensor_id
-            ).first()
+            model = (
+                db.query(SensorModel).filter(SensorModel.id == self.sensor_id).first()
+            )
             return Sensor.from_model(model) if model else None
 
     @classmethod
@@ -192,6 +202,7 @@ class SensorReading:
 @strawberry.type
 class Alert:
     """GraphQL type for alerts."""
+
     id: str
     sensor_id: str
     reading_id: Optional[str]
@@ -245,6 +256,7 @@ class Alert:
 @strawberry.input
 class CreateSensorTypeInput:
     """Input for creating a new sensor type."""
+
     name: str
     description: Optional[str] = None
     unit: Optional[str] = None
@@ -256,6 +268,7 @@ class CreateSensorTypeInput:
 @strawberry.input
 class CreateLocationInput:
     """Input for creating a new location."""
+
     name: str
     description: Optional[str] = None
     parent_id: Optional[str] = None
@@ -271,6 +284,7 @@ class CreateLocationInput:
 @strawberry.input
 class CreateSensorInput:
     """Input for creating a new sensor."""
+
     device_id: str
     name: str
     description: Optional[str] = None
@@ -286,7 +300,77 @@ class CreateSensorInput:
 @strawberry.input
 class CreateSensorReadingInput:
     """Input for creating a new sensor reading."""
+
     sensor_id: str
     value: float
     raw_value: Optional[float] = None
     timestamp: Optional[datetime] = None
+
+
+# Update input types for mutations
+@strawberry.input
+class UpdateSensorTypeInput:
+    """Input for updating a sensor type."""
+
+    name: Optional[str] = None
+    description: Optional[str] = None
+    unit: Optional[str] = None
+    data_type: Optional[str] = None
+    min_value: Optional[float] = None
+    max_value: Optional[float] = None
+    is_active: Optional[bool] = None
+
+
+@strawberry.input
+class UpdateLocationInput:
+    """Input for updating a location."""
+
+    name: Optional[str] = None
+    description: Optional[str] = None
+    parent_id: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    altitude: Optional[float] = None
+    address: Optional[str] = None
+    city: Optional[str] = None
+    country: Optional[str] = None
+    postal_code: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+@strawberry.input
+class UpdateSensorInput:
+    """Input for updating a sensor."""
+
+    device_id: Optional[str] = None
+    name: Optional[str] = None
+    description: Optional[str] = None
+    sensor_type_id: Optional[str] = None
+    location_id: Optional[str] = None
+    manufacturer: Optional[str] = None
+    model: Optional[str] = None
+    firmware_version: Optional[str] = None
+    hardware_version: Optional[str] = None
+    sampling_interval: Optional[int] = None
+    calibration_date: Optional[datetime] = None
+    calibration_offset: Optional[float] = None
+    calibration_scale: Optional[float] = None
+    is_active: Optional[bool] = None
+    is_online: Optional[bool] = None
+
+
+@strawberry.input
+class UpdateSensorReadingInput:
+    """Input for updating a sensor reading."""
+
+    value: Optional[float] = None
+    raw_value: Optional[float] = None
+    timestamp: Optional[datetime] = None
+
+
+@strawberry.input
+class UpdateAlertInput:
+    """Input for updating an alert."""
+
+    status: Optional[str] = None
+    acknowledged_by: Optional[str] = None

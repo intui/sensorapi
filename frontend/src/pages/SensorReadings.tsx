@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@apollo/client';
 import { GET_SENSOR_READINGS, GET_SENSORS } from '../graphql/queries';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -33,7 +33,7 @@ const SensorReadings: React.FC = () => {
   const [selectedSensorId, setSelectedSensorId] = useState<string>('');
   const [timeRange, setTimeRange] = useState<string>('24h');
 
-  const getTimeRangeFilters = () => {
+  const timeRangeFilters = useMemo(() => {
     const now = new Date();
     const startTime = new Date();
     
@@ -55,13 +55,14 @@ const SensorReadings: React.FC = () => {
       startTime: startTime.toISOString(),
       endTime: now.toISOString()
     };
-  };
+  }, [timeRange]);
 
   const { data: sensorsData } = useQuery(GET_SENSORS);
   const { data: readingsData, loading, error, refetch } = useQuery(GET_SENSOR_READINGS, {
     variables: {
       sensorId: selectedSensorId,
-      ...getTimeRangeFilters(),
+      limit: 3000, // Optimales Limit für gute Performance und Details
+      ...timeRangeFilters,
     },
     skip: !selectedSensorId,
   });
@@ -71,13 +72,26 @@ const SensorReadings: React.FC = () => {
     if (selectedSensorId) {
       refetch({
         sensorId: selectedSensorId,
-        ...getTimeRangeFilters(),
+        limit: 3000,
+        ...timeRangeFilters,
       });
     }
-  }, [timeRange, selectedSensorId, refetch]);
+  }, [timeRange, selectedSensorId]); // Removed refetch and timeRangeFilters from dependencies
 
   const sensors = sensorsData?.sensors || [];
   const readings = readingsData?.sensorReadings || [];
+
+  // Debug logging
+  console.log('SensorReadings Debug:', {
+    selectedSensorId,
+    timeRange,
+    timeRangeFilters,
+    sensorsCount: sensors.length,
+    readingsCount: readings.length,
+    loading,
+    error: error?.message,
+    readingsData
+  });
 
   const selectedSensor = sensors.find((s: any) => s.id === selectedSensorId);
 
@@ -93,7 +107,7 @@ const SensorReadings: React.FC = () => {
         backgroundColor: 'rgba(59, 130, 246, 0.1)',
         borderWidth: 2,
         fill: true,
-        tension: 0.4,
+        tension: 0, // Changed from 0.4 to 0 for straight lines
       },
     ],
   };
@@ -185,7 +199,8 @@ const SensorReadings: React.FC = () => {
               <button
                 onClick={() => refetch({
                   sensorId: selectedSensorId,
-                  ...getTimeRangeFilters(),
+                  limit: 3000,
+                  ...timeRangeFilters,
                 })}
                 disabled={!selectedSensorId || loading}
                 className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"

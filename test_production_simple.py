@@ -13,7 +13,7 @@ import time
 from datetime import datetime
 
 
-PRODUCTION_URL = "https://sensorapi-cpbpps2rw-widos-projects.vercel.app"
+PRODUCTION_URL = "https://sensorapi-two.vercel.app"
 
 
 def test_api_health():
