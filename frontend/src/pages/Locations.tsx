@@ -42,7 +42,7 @@ const Locations: React.FC = () => {
     },
   });
 
-  const [deleteLocation, { loading: deleting }] = useMutation(DELETE_LOCATION, {
+  const [deleteLocation] = useMutation(DELETE_LOCATION, {
     onCompleted: () => {
       setDeleteItem(null);
       refetch();

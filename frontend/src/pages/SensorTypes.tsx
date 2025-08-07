@@ -40,7 +40,7 @@ const SensorTypes: React.FC = () => {
     },
   });
 
-  const [deleteSensorType, { loading: deleting }] = useMutation(DELETE_SENSOR_TYPE, {
+  const [deleteSensorType] = useMutation(DELETE_SENSOR_TYPE, {
     onCompleted: () => {
       setDeleteItem(null);
       refetch();
