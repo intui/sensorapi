@@ -64,6 +64,29 @@ export const GET_SENSORS = gql`
   }
 `;
 
+export const GET_LATEST_READINGS = gql`
+  query GetLatestReadings($locationId: String, $sensorTypeId: String) {
+    latestReadings(locationId: $locationId, sensorTypeId: $sensorTypeId) {
+      id
+      value
+      rawValue
+      timestamp
+      receivedAt
+      sensor {
+        id
+        name
+        sensorType {
+          name
+          unit
+        }
+        location {
+          name
+        }
+      }
+    }
+  }
+`;
+
 export const GET_SENSOR_READINGS = gql`
   query GetSensorReadings($sensorId: String!, $limit: Int = 100, $offset: Int = 0, $startTime: DateTime, $endTime: DateTime) {
     sensorReadings(sensorId: $sensorId, limit: $limit, offset: $offset, startTime: $startTime, endTime: $endTime) {
