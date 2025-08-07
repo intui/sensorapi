@@ -152,7 +152,7 @@ class Sensor(Base):
     # Relationships
     sensor_type = relationship("SensorType", back_populates="sensors")
     location = relationship("Location", back_populates="sensors")
-    readings = relationship("SensorReading", back_populates="sensor")
+    readings = relationship("SensorReading", back_populates="sensor", cascade="all, delete-orphan")
     
     # Indexes
     __table_args__ = (

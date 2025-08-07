@@ -468,6 +468,11 @@ class Mutation:
             model = db.query(SensorModel).filter(SensorModel.id == id).first()
             if not model:
                 return False
+            
+            # First delete all sensor readings for this sensor
+            db.query(SensorReadingModel).filter(SensorReadingModel.sensor_id == id).delete()
+            
+            # Then delete the sensor itself
             db.delete(model)
             db.commit()
             return True

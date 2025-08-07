@@ -57,9 +57,14 @@ const Sensors: React.FC = () => {
   });
 
   const [deleteSensor, { loading: deleting }] = useMutation(DELETE_SENSOR, {
-    onCompleted: () => {
+    onCompleted: (data) => {
+      console.log('Delete mutation completed:', data);
       setDeleteItem(null);
       refetch();
+    },
+    onError: (error) => {
+      console.error('Delete mutation error:', error);
+      alert('Failed to delete sensor: ' + error.message);
     },
   });
 
@@ -167,12 +172,15 @@ const Sensors: React.FC = () => {
 
   const handleDelete = async () => {
     if (deleteItem) {
+      console.log('Attempting to delete sensor:', deleteItem);
       try {
-        await deleteSensor({
+        const result = await deleteSensor({
           variables: { id: deleteItem.id },
         });
+        console.log('Delete result:', result);
       } catch (error) {
         console.error('Failed to delete sensor:', error);
+        // Error is already handled by the mutation's onError callback
       }
     }
   };
@@ -322,6 +330,7 @@ const Sensors: React.FC = () => {
         message={`Are you sure you want to delete "${deleteItem?.name}"? This action cannot be undone and will also delete all associated sensor readings.`}
         confirmText="Delete"
         isDestructive={true}
+        isLoading={deleting}
       />
 
       <div className="bg-white shadow rounded-lg">
