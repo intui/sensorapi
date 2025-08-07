@@ -5,7 +5,7 @@ import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import SensorTypes from './pages/SensorTypes';
 import Locations from './pages/Locations';
-import SensorsModern from './pages/SensorsModern';
+import Sensors from './pages/Sensors';
 import SensorReadings from './pages/SensorReadings';
 
 function App() {
@@ -17,7 +17,7 @@ function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/sensor-types" element={<SensorTypes />} />
             <Route path="/locations" element={<Locations />} />
-            <Route path="/sensors" element={<SensorsModern />} />
+            <Route path="/sensors" element={<Sensors />} />
             <Route path="/readings" element={<SensorReadings />} />
           </Routes>
         </Layout>

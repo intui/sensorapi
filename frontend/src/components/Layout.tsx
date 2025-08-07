@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Database, MapPin, Thermometer, BarChart3, Activity, Zap } from 'lucide-react';
+import { Database, MapPin, Thermometer, BarChart3, Activity, Settings } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -18,21 +18,18 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
-      {/* Modern Dark Navigation */}
-      <nav className="bg-gray-900/50 backdrop-blur-xl border-b border-gray-700/50">
+    <div className="min-h-screen bg-gray-50">
+      <nav className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex">
               <div className="flex-shrink-0 flex items-center">
-                <div className="w-10 h-10 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full flex items-center justify-center">
-                  <Zap className="h-6 w-6 text-white" />
-                </div>
-                <span className="ml-3 text-xl font-bold text-white">
-                  Sensor Hub
+                <Settings className="h-8 w-8 text-blue-600" />
+                <span className="ml-2 text-xl font-semibold text-gray-900">
+                  Sensor Manager
                 </span>
               </div>
-              <div className="hidden sm:ml-8 sm:flex sm:space-x-1">
+              <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
                 {navigation.map((item) => {
                   const Icon = item.icon;
                   const isActive = location.pathname === item.href;
@@ -40,10 +37,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                     <Link
                       key={item.name}
                       to={item.href}
-                      className={`inline-flex items-center px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+                      className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
                         isActive
-                          ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/20 text-cyan-300 border border-cyan-500/30'
-                          : 'text-gray-300 hover:text-white hover:bg-gray-800/50'
+                          ? 'border-blue-500 text-gray-900'
+                          : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
                       }`}
                     >
                       <Icon className="h-4 w-4 mr-2" />
@@ -57,9 +54,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
       </nav>
 
-      {/* Main Content - Remove padding to let dashboard handle its own spacing */}
-      <main>
-        {children}
+      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div className="px-4 py-6 sm:px-0">
+          {children}
+        </div>
       </main>
     </div>
   );
