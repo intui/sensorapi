@@ -2,16 +2,15 @@
   "version": 2,
   "builds": [
     {
+      "src": "main.py",
+      "use": "@vercel/python"
+    },
+    {
       "src": "frontend/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "buildCommand": "npm ci && npm run build",
         "distDir": "dist"
       }
-    },
-    {
-      "src": "main.py",
-      "use": "@vercel/python"
     }
   ],
   "routes": [
@@ -28,16 +27,8 @@
       "dest": "main.py"
     },
     {
-      "src": "/vite.svg",
-      "dest": "frontend/dist/vite.svg"
-    },
-    {
-      "src": "/assets/(.*)",
-      "dest": "frontend/dist/assets/$1"
-    },
-    {
       "src": "/(.*)",
-      "dest": "frontend/dist/index.html"
+      "dest": "/$1"
     }
   ],
   "env": {
