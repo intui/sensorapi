@@ -1,18 +1,12 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "main.py",
-      "use": "@vercel/python"
-    },
-    {
-      "src": "frontend/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
+  "buildCommand": "cd frontend && npm ci && npm run build",
+  "outputDirectory": "frontend/dist",
+  "functions": {
+    "main.py": {
+      "runtime": "@vercel/python"
     }
-  ],
+  },
   "routes": [
     {
       "src": "/graphql",
@@ -25,14 +19,6 @@
     {
       "src": "/health",
       "dest": "main.py"
-    },
-    {
-      "src": "/assets/(.*)",
-      "dest": "/frontend/dist/assets/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/frontend/dist/index.html"
     }
   ],
   "env": {
