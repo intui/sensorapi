@@ -2,23 +2,18 @@
   "version": 2,
   "buildCommand": "cd frontend && npm ci && npm run build",
   "outputDirectory": "frontend/dist",
-  "functions": {
-    "main.py": {
-      "runtime": "@vercel/python"
-    }
-  },
-  "routes": [
+  "rewrites": [
     {
-      "src": "/graphql",
-      "dest": "main.py"
+      "source": "/graphql",
+      "destination": "/api/main"
     },
     {
-      "src": "/api/(.*)",
-      "dest": "main.py"
+      "source": "/api/(.*)",
+      "destination": "/api/main"
     },
     {
-      "src": "/health",
-      "dest": "main.py"
+      "source": "/health",
+      "destination": "/api/main"
     }
   ],
   "env": {

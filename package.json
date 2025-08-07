@@ -1,0 +1,10 @@
+{
+  "name": "sensorapi",
+  "version": "1.0.0",
+  "description": "Sensor API with React frontend and FastAPI backend",
+  "scripts": {
+    "build": "cd frontend && npm ci && npm run build",
+    "dev": "cd frontend && npm run dev"
+  },
+  "private": true
+}
