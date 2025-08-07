@@ -1,7 +1,18 @@
 import { ApolloClient, InMemoryCache, createHttpLink } from '@apollo/client';
 
+// Use environment variable for GraphQL endpoint, with fallbacks for development
+const getGraphQLEndpoint = () => {
+  // In production (Vercel), use relative path to same domain
+  if (import.meta.env.PROD) {
+    return '/graphql';
+  }
+  
+  // In development, check for custom endpoint or use WSL2 network interface
+  return import.meta.env.VITE_GRAPHQL_ENDPOINT || 'http://172.27.241.121:8000/graphql';
+};
+
 const httpLink = createHttpLink({
-  uri: 'http://172.27.241.121:8000/graphql', // Use WSL2 network interface for Windows access
+  uri: getGraphQLEndpoint(),
 });
 
 export const apolloClient = new ApolloClient({
