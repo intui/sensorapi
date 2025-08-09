@@ -33,8 +33,8 @@ class Query:
         """Get all sensor types."""
         with get_db_session() as db:
             query = db.query(SensorTypeModel)
-            if active_only:
-                query = query.filter(SensorTypeModel.is_active == True)
+            # Note: is_active field was removed from SensorType model
+            # All sensor types are considered active
             models = query.all()
             return [SensorType.from_model(model) for model in models]
 
