@@ -7,12 +7,19 @@ const getGraphQLEndpoint = () => {
     return '/graphql';
   }
   
-  // In development, check for custom endpoint or use WSL2 network interface
-  return import.meta.env.VITE_GRAPHQL_ENDPOINT || 'http://172.27.241.121:8000/graphql';
+  // In development, use production API endpoint
+  const endpoint = import.meta.env.VITE_GRAPHQL_ENDPOINT || 'https://sensorapi-two.vercel.app/graphql';
+  console.log('GraphQL endpoint:', endpoint);
+  console.log('Environment variables:', import.meta.env);
+  return endpoint;
 };
 
 const httpLink = createHttpLink({
   uri: getGraphQLEndpoint(),
+  fetchOptions: {
+    mode: 'cors',
+    credentials: 'omit',
+  },
 });
 
 export const apolloClient = new ApolloClient({

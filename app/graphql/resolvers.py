@@ -21,7 +21,7 @@ from app.graphql.types import (Alert, CreateLocationInput, CreateSensorInput,
                                Location, Sensor, SensorReading, SensorType,
                                UpdateAlertInput, UpdateLocationInput,
                                UpdateSensorInput, UpdateSensorReadingInput,
-                               UpdateSensorTypeInput)
+                               UpdateSensorStatusInput, UpdateSensorTypeInput)
 
 
 @strawberry.type
@@ -255,18 +255,31 @@ class Mutation:
     def create_sensor_reading(
         self, info: Info, input: CreateSensorReadingInput
     ) -> SensorReading:
-        """Create a new sensor reading."""
+        """Create a new sensor reading and update sensor status."""
         with get_db_session() as db:
-            model = SensorReadingModel(
+            # Create the sensor reading
+            reading_model = SensorReadingModel(
                 sensor_id=input.sensor_id,
                 value=input.value,
                 raw_value=input.raw_value,
                 timestamp=input.timestamp or datetime.utcnow(),
             )
-            db.add(model)
+            db.add(reading_model)
+            db.flush()  # Get the ID without committing
+            
+            # Update sensor status
+            sensor_model = db.query(SensorModel).filter(SensorModel.id == input.sensor_id).first()
+            if sensor_model:
+                # Update sensor status fields
+                sensor_model.is_active = True  # Auto-activate on receiving reading
+                sensor_model.is_online = True  # Mark as online
+                sensor_model.last_seen = reading_model.timestamp
+                sensor_model.latest_reading_id = reading_model.id
+                sensor_model.updated_at = datetime.utcnow()
+            
             db.commit()
-            db.refresh(model)
-            return SensorReading.from_model(model)
+            db.refresh(reading_model)
+            return SensorReading.from_model(reading_model)
 
     @strawberry.mutation
     def delete_sensor_readings(self, info: Info, sensor_id: str) -> int:
@@ -387,6 +400,28 @@ class Mutation:
                 model.is_active = input.is_active
             if input.is_online is not None:
                 model.is_online = input.is_online
+
+            db.commit()
+            db.refresh(model)
+            return Sensor.from_model(model)
+
+    @strawberry.mutation
+    def update_sensor_status(
+        self, info: Info, id: str, input: UpdateSensorStatusInput
+    ) -> Optional[Sensor]:
+        """Update sensor status (active/online state)."""
+        with get_db_session() as db:
+            model = db.query(SensorModel).filter(SensorModel.id == id).first()
+            if not model:
+                return None
+
+            if input.is_active is not None:
+                model.is_active = input.is_active
+            if input.is_online is not None:
+                model.is_online = input.is_online
+                
+            # Update timestamp when status changes
+            model.updated_at = datetime.utcnow()
 
             db.commit()
             db.refresh(model)

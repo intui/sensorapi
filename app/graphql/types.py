@@ -137,8 +137,16 @@ class Sensor:
     @strawberry.field
     def latest_reading(self, info: Info) -> Optional["SensorReading"]:
         """Get the latest reading for this sensor."""
-        # This will be resolved by the resolver
-        return None
+        from app.database.database import get_db_session
+
+        with get_db_session() as db:
+            model = (
+                db.query(SensorReadingModel)
+                .filter(SensorReadingModel.sensor_id == self.id)
+                .order_by(SensorReadingModel.timestamp.desc())
+                .first()
+            )
+            return SensorReading.from_model(model) if model else None
 
     @classmethod
     def from_model(cls, model: SensorModel) -> "Sensor":
@@ -366,6 +374,14 @@ class UpdateSensorReadingInput:
     value: Optional[float] = None
     raw_value: Optional[float] = None
     timestamp: Optional[datetime] = None
+
+
+@strawberry.input
+class UpdateSensorStatusInput:
+    """Input for updating sensor status."""
+
+    is_active: Optional[bool] = None
+    is_online: Optional[bool] = None
 
 
 @strawberry.input
