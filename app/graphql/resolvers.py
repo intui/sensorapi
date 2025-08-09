@@ -200,7 +200,6 @@ class Mutation:
                 name=input.name,
                 description=input.description,
                 unit=input.unit,
-                data_type=input.data_type,
                 min_value=input.min_value,
                 max_value=input.max_value,
             )
@@ -310,14 +309,10 @@ class Mutation:
                 model.description = input.description
             if input.unit is not None:
                 model.unit = input.unit
-            if input.data_type is not None:
-                model.data_type = input.data_type
             if input.min_value is not None:
                 model.min_value = input.min_value
             if input.max_value is not None:
                 model.max_value = input.max_value
-            if input.is_active is not None:
-                model.is_active = input.is_active
 
             db.commit()
             db.refresh(model)

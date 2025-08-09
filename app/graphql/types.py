@@ -22,12 +22,10 @@ class SensorType:
     name: str
     description: Optional[str]
     unit: Optional[str]
-    data_type: str
     min_value: Optional[float]
     max_value: Optional[float]
     created_at: datetime
     updated_at: Optional[datetime]
-    is_active: bool
 
     @classmethod
     def from_model(cls, model: SensorTypeModel) -> "SensorType":
@@ -36,12 +34,10 @@ class SensorType:
             name=model.name,
             description=model.description,
             unit=model.unit,
-            data_type=model.data_type,
             min_value=model.min_value,
             max_value=model.max_value,
             created_at=model.created_at,
             updated_at=model.updated_at,
-            is_active=model.is_active,
         )
 
 
@@ -268,7 +264,6 @@ class CreateSensorTypeInput:
     name: str
     description: Optional[str] = None
     unit: Optional[str] = None
-    data_type: str = "float"
     min_value: Optional[float] = None
     max_value: Optional[float] = None
 
@@ -323,10 +318,8 @@ class UpdateSensorTypeInput:
     name: Optional[str] = None
     description: Optional[str] = None
     unit: Optional[str] = None
-    data_type: Optional[str] = None
     min_value: Optional[float] = None
     max_value: Optional[float] = None
-    is_active: Optional[bool] = None
 
 
 @strawberry.input
@@ -343,7 +336,6 @@ class UpdateLocationInput:
     city: Optional[str] = None
     country: Optional[str] = None
     postal_code: Optional[str] = None
-    is_active: Optional[bool] = None
 
 
 @strawberry.input
