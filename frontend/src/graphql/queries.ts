@@ -7,10 +7,8 @@ export const GET_SENSOR_TYPES = gql`
       name
       description
       unit
-      dataType
       minValue
       maxValue
-      isActive
       createdAt
     }
   }

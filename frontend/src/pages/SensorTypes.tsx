@@ -17,7 +17,6 @@ const SensorTypes: React.FC = () => {
     name: '',
     description: '',
     unit: '',
-    dataType: 'float',
     minValue: undefined,
     maxValue: undefined,
   });
@@ -52,7 +51,6 @@ const SensorTypes: React.FC = () => {
       name: '',
       description: '',
       unit: '',
-      dataType: 'float',
       minValue: undefined,
       maxValue: undefined,
     });
@@ -63,7 +61,6 @@ const SensorTypes: React.FC = () => {
       name: sensorType.name,
       description: sensorType.description || '',
       unit: sensorType.unit || '',
-      dataType: sensorType.dataType,
       minValue: sensorType.minValue,
       maxValue: sensorType.maxValue,
     });
@@ -88,7 +85,6 @@ const SensorTypes: React.FC = () => {
               name: formData.name,
               description: formData.description || null,
               unit: formData.unit || null,
-              dataType: formData.dataType,
               minValue: formData.minValue || null,
               maxValue: formData.maxValue || null,
             },
@@ -169,19 +165,6 @@ const SensorTypes: React.FC = () => {
                   placeholder="e.g., °C, %, Pa"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Data Type</label>
-                <select
-                  value={formData.dataType}
-                  onChange={(e) => setFormData({ ...formData, dataType: e.target.value })}
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="float">Float</option>
-                  <option value="integer">Integer</option>
-                  <option value="boolean">Boolean</option>
-                  <option value="string">String</option>
-                </select>
-              </div>
               <div className="sm:col-span-2">
                 <label className="block text-sm font-medium text-gray-700">Description</label>
                 <textarea
@@ -257,13 +240,7 @@ const SensorTypes: React.FC = () => {
                   Unit
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Data Type
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Range
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
@@ -283,9 +260,6 @@ const SensorTypes: React.FC = () => {
                     {sensorType.unit || '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {sensorType.dataType}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {sensorType.minValue !== null && sensorType.maxValue !== null
                       ? `${sensorType.minValue} - ${sensorType.maxValue}`
                       : sensorType.minValue !== null
@@ -293,15 +267,6 @@ const SensorTypes: React.FC = () => {
                       : sensorType.maxValue !== null
                       ? `≤ ${sensorType.maxValue}`
                       : '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      sensorType.isActive 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-red-100 text-red-800'
-                    }`}>
-                      {sensorType.isActive ? 'Active' : 'Inactive'}
-                    </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <button 

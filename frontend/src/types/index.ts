@@ -3,10 +3,8 @@ export interface SensorType {
   name: string;
   description?: string;
   unit?: string;
-  dataType: string;
   minValue?: number;
   maxValue?: number;
-  isActive: boolean;
   createdAt: string;
 }
 
@@ -70,7 +68,6 @@ export interface CreateSensorTypeInput {
   name: string;
   description?: string;
   unit?: string;
-  dataType: string;
   minValue?: number;
   maxValue?: number;
 }

@@ -7,10 +7,8 @@ export const CREATE_SENSOR_TYPE = gql`
       name
       description
       unit
-      dataType
       minValue
       maxValue
-      isActive
       createdAt
     }
   }
@@ -93,10 +91,8 @@ export const UPDATE_SENSOR_TYPE = gql`
       name
       description
       unit
-      dataType
       minValue
       maxValue
-      isActive
       createdAt
     }
   }
