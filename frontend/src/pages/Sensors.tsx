@@ -1,13 +1,75 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation } from '@apollo/client';
-import { GET_SENSORS, GET_SENSOR_TYPES, GET_LOCATIONS } from '../graphql/queries';
+import { GET_SENSORS, GET_SENSOR_TYPES, GET_LOCATIONS, GET_SENSOR_DATA_RANGE } from '../graphql/queries';
 import { CREATE_SENSOR, UPDATE_SENSOR, DELETE_SENSOR } from '../graphql/mutations';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
 import Modal from '../components/Modal';
 import ConfirmDialog from '../components/ConfirmDialog';
-import { Plus, Edit, Trash2, Thermometer, Wifi, WifiOff } from 'lucide-react';
+import { Plus, Edit, Trash2, Thermometer, Wifi, WifiOff, Calendar, Database } from 'lucide-react';
 import type { Sensor, CreateSensorInput } from '../types';
+
+// Component to show data range for a single sensor
+const SensorDataRange: React.FC<{ sensorId: string }> = ({ sensorId }) => {
+  const { data, loading, error } = useQuery(GET_SENSOR_DATA_RANGE, {
+    variables: { sensorId },
+    errorPolicy: 'ignore'
+  });
+
+  if (loading) {
+    return (
+      <div className="text-xs text-gray-400 flex items-center">
+        <Database className="h-3 w-3 mr-1 animate-pulse" />
+        Loading...
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="text-xs text-gray-400">
+        No data available
+      </div>
+    );
+  }
+
+  const { latest, earliest } = data;
+  const latestDate = latest?.[0]?.timestamp;
+  const earliestDate = earliest?.[0]?.timestamp;
+
+  if (!latestDate) {
+    return (
+      <div className="text-xs text-gray-400">
+        No readings found
+      </div>
+    );
+  }
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  return (
+    <div className="text-xs space-y-1">
+      <div className="flex items-center text-green-600">
+        <Calendar className="h-3 w-3 mr-1" />
+        <span className="font-medium">Latest:</span> 
+        <span className="ml-1">{formatDate(latestDate)}</span>
+      </div>
+      {earliestDate && (
+        <div className="flex items-center text-blue-600">
+          <Database className="h-3 w-3 mr-1" />
+          <span className="font-medium">Earliest:</span> 
+          <span className="ml-1">{formatDate(earliestDate)}</span>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const Sensors: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
@@ -351,6 +413,9 @@ const Sensors: React.FC = () => {
                   Status
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Data Range
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Last Seen
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -401,6 +466,9 @@ const Sensors: React.FC = () => {
                         {sensor.isOnline ? 'Online' : 'Offline'}
                       </span>
                     </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <SensorDataRange sensorId={sensor.id} />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {sensor.lastSeen 

@@ -81,3 +81,14 @@ export const GET_SENSOR_READINGS = gql`
     }
   }
 `;
+
+export const GET_SENSOR_DATA_RANGE = gql`
+  query GetSensorDataRange($sensorId: String!) {
+    latest: sensorReadings(sensorId: $sensorId, limit: 1) {
+      timestamp
+    }
+    earliest: sensorReadings(sensorId: $sensorId, limit: 1, startTime: "2015-01-01T00:00:00Z", endTime: "2020-01-01T00:00:00Z") {
+      timestamp
+    }
+  }
+`;

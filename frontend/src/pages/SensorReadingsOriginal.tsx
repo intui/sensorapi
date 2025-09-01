@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@apollo/client';
 import { GET_SENSOR_READINGS, GET_SENSORS, GET_LOCATIONS, GET_SENSOR_TYPES } from '../graphql/queries';
+import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
 import { Line, Bar, Scatter } from 'react-chartjs-2';
 import {
@@ -14,17 +15,17 @@ import {
   Tooltip,
   Legend,
   TimeScale,
-  type ChartOptions,
-  type ChartData,
 } from 'chart.js';
 import 'chartjs-adapter-date-fns';
 import { 
   Calendar, 
+  TrendingUp, 
   Download, 
   RefreshCw, 
   Settings, 
   BarChart3, 
   LineChart, 
+  Scatter3D,
   Filter,
   Search,
   MapPin,
@@ -202,80 +203,123 @@ const SensorReadings: React.FC = () => {
     alert('Export functionality will be implemented soon!');
   };
 
-  // Get readings for the first selected visible sensor (simplified approach)
-  const firstVisibleSensor = selectedSensors.find(s => s.visible);
-  const { data: readingsData, loading, error } = useQuery(GET_SENSOR_READINGS, {
-    variables: {
-      sensorId: firstVisibleSensor?.id,
-      limit: dataLimit,
-      ...timeRangeFilters,
-    },
-    skip: !firstVisibleSensor,
-    pollInterval: autoRefresh ? refreshInterval * 1000 : 0,
-  });
+  const SensorReadingChart = ({ sensorId, color, visible }: { sensorId: string, color: string, visible: boolean }) => {
+    const { data: readingsData, loading, error, refetch } = useQuery(GET_SENSOR_READINGS, {
+      variables: {
+        sensorId,
+        limit: dataLimit,
+        ...timeRangeFilters,
+      },
+      skip: !visible,
+      pollInterval: autoRefresh ? refreshInterval * 1000 : 0,
+    });
 
-  const readings = readingsData?.sensorReadings || [];
-  const selectedSensor = sensors.find((s: any) => s.id === firstVisibleSensor?.id);
+    const readings = readingsData?.sensorReadings || [];
+    const sensor = sensors.find((s: any) => s.id === sensorId);
 
-  // Create single sensor data structure
-  const allSensorData = firstVisibleSensor && selectedSensor ? [{
-    sensorId: firstVisibleSensor.id,
-    sensor: selectedSensor,
-    readings,
-    color: firstVisibleSensor.color,
-    visible: firstVisibleSensor.visible,
-    loading,
-    error
-  }] : [];
+    if (!visible || !sensor) return null;
 
-  const isLoading = loading;
-  const hasError = !!error;
-  const errors = error ? [error] : [];
+    return {
+      readings,
+      sensor,
+      loading,
+      error,
+      color
+    };
+  };
 
-  // Prepare chart data based on chart type (simplified for single sensor)
+  // Collect all sensor data for the chart
+  const allSensorData = selectedSensors.map(({ id, color, visible }) => {
+    const { data: readingsData, loading, error } = useQuery(GET_SENSOR_READINGS, {
+      variables: {
+        sensorId: id,
+        limit: dataLimit,
+        ...timeRangeFilters,
+      },
+      skip: !visible,
+      pollInterval: autoRefresh ? refreshInterval * 1000 : 0,
+    });
+
+    const readings = readingsData?.sensorReadings || [];
+    const sensor = sensors.find((s: any) => s.id === id);
+
+    return {
+      sensorId: id,
+      sensor,
+      readings,
+      color,
+      visible,
+      loading,
+      error
+    };
+  }).filter(data => data.visible && data.sensor);
+
+  const isLoading = allSensorData.some(data => data.loading);
+  const hasError = allSensorData.some(data => data.error);
+  const errors = allSensorData.filter(data => data.error).map(data => data.error);
+
+  // Prepare chart data
   const chartData = useMemo(() => {
     if (allSensorData.length === 0) return { labels: [], datasets: [] };
 
-    const data = allSensorData[0];
-    const { sensor, readings } = data;
-    const color = firstVisibleSensor?.color || 'rgb(59, 130, 246)';
+    // Collect all unique timestamps
+    const allTimestamps = new Set<string>();
+    allSensorData.forEach(data => {
+      data.readings.forEach((reading: any) => {
+        allTimestamps.add(reading.timestamp);
+      });
+    });
 
-    if (chartType === 'scatter') {
-      const datasets = [{
-        label: `${sensor.name} (${sensor.sensorType.unit || 'value'})`,
-        data: readings.map((r: any) => ({ x: new Date(r.timestamp).getTime(), y: r.value })),
-        borderColor: color,
-        backgroundColor: color + '80',
-        pointRadius: 3,
-        pointHoverRadius: 5,
-      }];
-
-      return { datasets };
-    }
-
-    // For line and bar charts
-    const timestamps = readings.map((r: any) => new Date(r.timestamp));
-    const values = readings.map((r: any) => r.value);
+    const sortedTimestamps = Array.from(allTimestamps).sort();
     
-    const datasets = [{
-      label: `${sensor.name} (${sensor.sensorType.unit || 'value'})`,
-      data: values,
-      borderColor: color,
-      backgroundColor: chartType === 'bar' ? color + '80' : color + '20',
-      borderWidth: 2,
-      tension: chartType === 'line' ? 0.1 : 0,
-      fill: chartType === 'line' ? false : true,
-      pointRadius: chartType === 'line' ? 1 : 0,
-      pointHoverRadius: chartType === 'line' ? 4 : 0,
-    }];
+    const datasets = allSensorData.map(data => {
+      const { sensor, readings, color } = data;
+      
+      // Create data points aligned with timestamps
+      const dataPoints = sortedTimestamps.map(timestamp => {
+        const reading = readings.find((r: any) => r.timestamp === timestamp);
+        return reading ? reading.value : null;
+      });
+
+      const baseConfig = {
+        label: `${sensor.name} (${sensor.sensorType.unit || 'value'})`,
+        data: chartType === 'scatter' 
+          ? readings.map((r: any) => ({ x: new Date(r.timestamp), y: r.value }))
+          : dataPoints,
+        borderColor: color,
+        backgroundColor: chartType === 'bar' ? color + '80' : color + '20',
+        borderWidth: 2,
+        tension: chartType === 'line' ? 0.1 : 0,
+      };
+
+      if (chartType === 'line') {
+        return {
+          ...baseConfig,
+          fill: false,
+          pointRadius: 1,
+          pointHoverRadius: 4,
+        };
+      } else if (chartType === 'bar') {
+        return {
+          ...baseConfig,
+          type: 'bar' as const,
+        };
+      } else {
+        return {
+          ...baseConfig,
+          showLine: false,
+          pointRadius: 2,
+        };
+      }
+    });
 
     return {
-      labels: timestamps,
+      labels: chartType === 'scatter' ? [] : sortedTimestamps.map(ts => new Date(ts)),
       datasets
     };
-  }, [allSensorData, chartType, firstVisibleSensor]);
+  }, [allSensorData, chartType]);
 
-  const chartOptions: ChartOptions<any> = useMemo(() => {
+  const chartOptions = useMemo(() => {
     const baseOptions = {
       responsive: true,
       maintainAspectRatio: false,
@@ -292,32 +336,16 @@ const SensorReadings: React.FC = () => {
           intersect: false,
           callbacks: {
             label: (context: any) => {
-              const unit = selectedSensor?.sensorType?.unit || '';
+              const sensor = allSensorData[context.datasetIndex]?.sensor;
+              const unit = sensor?.sensorType?.unit || '';
               return `${context.dataset.label}: ${context.parsed.y}${unit ? ' ' + unit : ''}`;
             }
           }
         },
       },
-      scales: chartType === 'scatter' ? {
+      scales: {
         x: {
-          type: 'linear' as const,
-          title: {
-            display: true,
-            text: 'Time (timestamp)'
-          }
-        },
-        y: {
-          beginAtZero: false,
-          title: {
-            display: true,
-            text: allSensorData.length > 0 
-              ? allSensorData[0].sensor?.sensorType?.unit || 'Value'
-              : 'Value'
-          }
-        },
-      } : {
-        x: {
-          type: 'time' as const,
+          type: chartType === 'scatter' ? 'time' : 'time',
           time: {
             displayFormats: {
               hour: 'HH:mm',
@@ -335,7 +363,7 @@ const SensorReadings: React.FC = () => {
           beginAtZero: false,
           title: {
             display: true,
-            text: allSensorData.length > 0 
+            text: allSensorData.length === 1 
               ? allSensorData[0].sensor?.sensorType?.unit || 'Value'
               : 'Value'
           }
@@ -354,7 +382,7 @@ const SensorReadings: React.FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-900">Multi-Sensor Dashboard</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Sensor Readings Dashboard</h1>
         <div className="flex items-center space-x-3">
           <button
             onClick={exportData}
@@ -561,68 +589,52 @@ const SensorReadings: React.FC = () => {
         </div>
       </div>
 
-      {/* Sensor Selection - Compact Dropdown */}
+      {/* Sensor Selection */}
       <div className="bg-white shadow rounded-lg">
         <div className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-medium text-gray-900">Sensor Selection</h3>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-medium text-gray-900">Available Sensors</h3>
             <div className="text-sm text-gray-500">
-              {filteredSensors.length} of {sensors.length} sensors available
+              {filteredSensors.length} of {sensors.length} sensors
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {/* Sensor Selection Dropdown */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <Activity className="h-4 w-4 inline mr-1" />
-                Add Sensor
-              </label>
-              <select
-                onChange={(e) => {
-                  if (e.target.value) {
-                    addSensor(e.target.value);
-                    e.target.value = ''; // Reset selection
-                  }
-                }}
-                className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-                defaultValue=""
-              >
-                <option value="" disabled>Choose a sensor to add...</option>
-                {filteredSensors
-                  .filter((sensor: any) => !selectedSensors.find(s => s.id === sensor.id))
-                  .map((sensor: any) => (
-                    <option key={sensor.id} value={sensor.id}>
-                      {sensor.name} ({sensor.sensorType.name}) - {sensor.location.name} {sensor.isOnline ? '🟢' : '🔴'}
-                    </option>
-                  ))}
-              </select>
-            </div>
-
-            {/* Quick Stats */}
-            <div className="sm:col-span-2 lg:col-span-2">
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center space-x-4">
-                  <span className="text-gray-600">
-                    <span className="font-medium">{selectedSensors.length}</span> selected
-                  </span>
-                  <span className="text-gray-600">
-                    <span className="font-medium">{selectedSensors.filter(s => s.visible).length}</span> visible
-                  </span>
-                  <span className="text-gray-600">
-                    <span className="font-medium">{filteredSensors.filter((s: any) => s.isOnline).length}</span> online
-                  </span>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {filteredSensors.map((sensor: any) => {
+              const isSelected = selectedSensors.find(s => s.id === sensor.id);
+              return (
+                <div
+                  key={sensor.id}
+                  className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                    isSelected 
+                      ? 'border-blue-500 bg-blue-50' 
+                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                  }`}
+                  onClick={() => isSelected ? removeSensor(sensor.id) : addSensor(sensor.id)}
+                >
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {sensor.name}
+                      </p>
+                      <p className="text-xs text-gray-500 truncate">
+                        {sensor.sensorType.name} • {sensor.location.name}
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        {sensor.isOnline ? '🟢 Online' : '🔴 Offline'}
+                      </p>
+                    </div>
+                    <div className="ml-2">
+                      {isSelected ? (
+                        <X className="h-4 w-4 text-red-500" />
+                      ) : (
+                        <Plus className="h-4 w-4 text-green-500" />
+                      )}
+                    </div>
+                  </div>
                 </div>
-                {selectedSensors.length > 0 && (
-                  <button
-                    onClick={() => setSelectedSensors([])}
-                    className="text-sm text-red-600 hover:text-red-800 font-medium"
-                  >
-                    Clear All
-                  </button>
-                )}
-              </div>
-            </div>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -691,48 +703,21 @@ const SensorReadings: React.FC = () => {
               <div className="flex items-center">
                 <Calendar className="h-5 w-5 text-gray-400 mr-2" />
                 <h3 className="text-lg font-medium text-gray-900">
-                  {getTimeRangeLabel(timeRange)} - {selectedSensor ? selectedSensor.name : 'Sensor Data'}
+                  {getTimeRangeLabel(timeRange)} - Multiple Sensors
                 </h3>
-                {isLoading && (
-                  <div className="ml-3 flex items-center">
-                    <RefreshCw className="h-4 w-4 text-blue-500 animate-spin mr-1" />
-                    <span className="text-sm text-blue-600 font-medium">Loading...</span>
-                  </div>
-                )}
               </div>
               <div className="flex items-center space-x-2">
                 {chartType === 'line' && <LineChart className="h-5 w-5 text-gray-400" />}
                 {chartType === 'bar' && <BarChart3 className="h-5 w-5 text-gray-400" />}
-                {chartType === 'scatter' && <Activity className="h-5 w-5 text-gray-400" />}
+                {chartType === 'scatter' && <Scatter3D className="h-5 w-5 text-gray-400" />}
                 <span className="text-sm text-gray-500">
-                  {isLoading ? 'Fetching...' : `${readings.length} readings`}
+                  {allSensorData.reduce((total, data) => total + data.readings.length, 0)} total readings
                 </span>
               </div>
             </div>
             
-            {isLoading && (
-              <div className="h-96 flex items-center justify-center bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                <div className="text-center">
-                  <div className="mb-4">
-                    <RefreshCw className="h-12 w-12 text-blue-500 animate-spin mx-auto" />
-                  </div>
-                  <h4 className="text-lg font-medium text-gray-900 mb-2">Loading Sensor Data</h4>
-                  <p className="text-gray-600 mb-4">
-                    Fetching readings from {selectedSensor?.name || 'selected sensor'}...
-                  </p>
-                  <div className="flex items-center justify-center space-x-2">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                  </div>
-                  <div className="mt-4 text-sm text-gray-500">
-                    Time range: {getTimeRangeLabel(timeRange)}
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {hasError && !isLoading && (
+            {isLoading && <LoadingSpinner />}
+            {hasError && (
               <div className="space-y-2">
                 {errors.map((error, index) => (
                   <ErrorMessage key={index} message={error?.message || 'Unknown error'} />
@@ -741,22 +726,17 @@ const SensorReadings: React.FC = () => {
             )}
             
             {!isLoading && !hasError && allSensorData.some(data => data.readings.length > 0) && (
-              <div className="h-96 transition-opacity duration-300 opacity-100">
-                {chartType === 'line' && <Line data={chartData as ChartData<'line'>} options={chartOptions} />}
-                {chartType === 'bar' && <Bar data={chartData as ChartData<'bar'>} options={chartOptions} />}
-                {chartType === 'scatter' && <Scatter data={chartData as ChartData<'scatter'>} options={chartOptions} />}
+              <div className="h-96">
+                {chartType === 'line' && <Line data={chartData} options={chartOptions} />}
+                {chartType === 'bar' && <Bar data={chartData} options={chartOptions} />}
+                {chartType === 'scatter' && <Scatter data={chartData} options={chartOptions} />}
               </div>
             )}
             
             {!isLoading && !hasError && allSensorData.every(data => data.readings.length === 0) && (
               <div className="text-center py-12">
-                <Activity className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h4 className="text-lg font-medium text-gray-900 mb-2">No Data Available</h4>
-                <div className="text-gray-500 mb-4">
+                <div className="text-gray-500">
                   No readings found for the selected sensors and time range.
-                </div>
-                <div className="text-sm text-gray-400">
-                  Try adjusting the time range or selecting a different sensor.
                 </div>
               </div>
             )}
@@ -765,135 +745,91 @@ const SensorReadings: React.FC = () => {
       )}
 
       {/* Statistics Panel */}
-      {selectedSensors.length > 0 && (
+      {selectedSensors.length > 0 && allSensorData.some(data => data.readings.length > 0) && (
         <div className="bg-white shadow rounded-lg">
           <div className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-gray-900">
-                Statistics Overview
-              </h3>
-              {isLoading && (
-                <div className="flex items-center">
-                  <RefreshCw className="h-4 w-4 text-blue-500 animate-spin mr-1" />
-                  <span className="text-sm text-blue-600">Calculating...</span>
-                </div>
-              )}
-            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Statistics Overview
+            </h3>
             
-            {isLoading && (
-              <div className="space-y-4">
-                {selectedSensors.filter(s => s.visible).map((sensor) => (
-                  <div key={sensor.id} className="border rounded-lg p-4 bg-gray-50">
+            <div className="space-y-6">
+              {allSensorData.filter(data => data.readings.length > 0).map((data) => {
+                const { sensor, readings, color } = data;
+                const values = readings.map((r: any) => r.value);
+                const avg = values.reduce((sum, val) => sum + val, 0) / values.length;
+                const min = Math.min(...values);
+                const max = Math.max(...values);
+                const latest = readings[0]?.value;
+                
+                return (
+                  <div key={sensor.id} className="border rounded-lg p-4">
                     <div className="flex items-center mb-3">
                       <div 
-                        className="w-3 h-3 rounded-full mr-3 animate-pulse"
-                        style={{ backgroundColor: sensor.color }}
+                        className="w-3 h-3 rounded-full mr-3"
+                        style={{ backgroundColor: color }}
                       />
-                      <div className="h-4 bg-gray-300 rounded animate-pulse w-48"></div>
+                      <h4 className="font-medium text-gray-900">
+                        {sensor.name} ({sensor.sensorType.name})
+                      </h4>
                     </div>
                     
                     <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                      {[...Array(4)].map((_, index) => (
-                        <div key={index} className="bg-gray-200 rounded-lg p-3">
-                          <div className="h-3 bg-gray-300 rounded animate-pulse mb-2 w-16"></div>
-                          <div className="h-6 bg-gray-300 rounded animate-pulse w-20"></div>
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <div className="text-xs font-medium text-gray-500 mb-1">Latest</div>
+                        <div className="text-lg font-semibold text-gray-900">
+                          {latest?.toFixed(2)}
+                          {sensor.sensorType.unit && (
+                            <span className="text-xs text-gray-500 ml-1">
+                              {sensor.sensorType.unit}
+                            </span>
+                          )}
                         </div>
-                      ))}
+                      </div>
+                      
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <div className="text-xs font-medium text-gray-500 mb-1">Average</div>
+                        <div className="text-lg font-semibold text-gray-900">
+                          {avg.toFixed(2)}
+                          {sensor.sensorType.unit && (
+                            <span className="text-xs text-gray-500 ml-1">
+                              {sensor.sensorType.unit}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <div className="text-xs font-medium text-gray-500 mb-1">Minimum</div>
+                        <div className="text-lg font-semibold text-gray-900">
+                          {min.toFixed(2)}
+                          {sensor.sensorType.unit && (
+                            <span className="text-xs text-gray-500 ml-1">
+                              {sensor.sensorType.unit}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <div className="text-xs font-medium text-gray-500 mb-1">Maximum</div>
+                        <div className="text-lg font-semibold text-gray-900">
+                          {max.toFixed(2)}
+                          {sensor.sensorType.unit && (
+                            <span className="text-xs text-gray-500 ml-1">
+                              {sensor.sensorType.unit}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-3 text-xs text-gray-500">
+                      {readings.length} readings • {sensor.location.name}
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-            
-            {!isLoading && allSensorData.some(data => data.readings.length > 0) && (
-              <div className="space-y-6">
-                {allSensorData.filter(data => data.readings.length > 0).map((data) => {
-                  const { sensor, readings, color } = data;
-                  const values = readings.map((r: any) => r.value);
-                  const avg = values.reduce((sum: number, val: number) => sum + val, 0) / values.length;
-                  const min = Math.min(...values);
-                  const max = Math.max(...values);
-                  const latest = readings[0]?.value;
-                  
-                  return (
-                    <div key={sensor.id} className="border rounded-lg p-4">
-                      <div className="flex items-center mb-3">
-                        <div 
-                          className="w-3 h-3 rounded-full mr-3"
-                          style={{ backgroundColor: color }}
-                        />
-                        <h4 className="font-medium text-gray-900">
-                          {sensor.name} ({sensor.sensorType.name})
-                        </h4>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                        <div className="bg-gray-50 rounded-lg p-3">
-                          <div className="text-xs font-medium text-gray-500 mb-1">Latest</div>
-                          <div className="text-lg font-semibold text-gray-900">
-                            {latest?.toFixed(2)}
-                            {sensor.sensorType.unit && (
-                              <span className="text-xs text-gray-500 ml-1">
-                                {sensor.sensorType.unit}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        
-                        <div className="bg-gray-50 rounded-lg p-3">
-                          <div className="text-xs font-medium text-gray-500 mb-1">Average</div>
-                          <div className="text-lg font-semibold text-gray-900">
-                            {avg.toFixed(2)}
-                            {sensor.sensorType.unit && (
-                              <span className="text-xs text-gray-500 ml-1">
-                                {sensor.sensorType.unit}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        
-                        <div className="bg-gray-50 rounded-lg p-3">
-                          <div className="text-xs font-medium text-gray-500 mb-1">Minimum</div>
-                          <div className="text-lg font-semibold text-gray-900">
-                            {min.toFixed(2)}
-                            {sensor.sensorType.unit && (
-                              <span className="text-xs text-gray-500 ml-1">
-                                {sensor.sensorType.unit}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        
-                        <div className="bg-gray-50 rounded-lg p-3">
-                          <div className="text-xs font-medium text-gray-500 mb-1">Maximum</div>
-                          <div className="text-lg font-semibold text-gray-900">
-                            {max.toFixed(2)}
-                            {sensor.sensorType.unit && (
-                              <span className="text-xs text-gray-500 ml-1">
-                                {sensor.sensorType.unit}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="mt-3 text-xs text-gray-500">
-                        {readings.length} readings • {sensor.location.name}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {!isLoading && allSensorData.every(data => data.readings.length === 0) && (
-              <div className="text-center py-8">
-                <Activity className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                <div className="text-gray-500">
-                  No data available for statistics calculation.
-                </div>
-              </div>
-            )}
+                );
+              })}
+            </div>
           </div>
         </div>
       )}
@@ -907,15 +843,17 @@ const SensorReadings: React.FC = () => {
               Welcome to Sensor Readings Dashboard
             </h3>
             <p className="text-gray-500 mb-4">
-              Select a sensor from the "Available Sensors" section above to start viewing real-time data from your {sensors.length} sensors across {locations.length} locations.
+              Select one or more sensors from the "Available Sensors" section above to start viewing real-time data.
             </p>
             <div className="text-sm text-gray-400">
-              💡 Click on any sensor card to view its data. You can switch between chart types and adjust time ranges.
+              💡 You can compare multiple sensors, switch between chart types, and set up auto-refresh for live monitoring.
             </div>
           </div>
         </div>
       )}
     </div>
+  );
+};
   );
 };
 
