@@ -9,6 +9,7 @@ from app.core.config import settings
 from app.graphql.schema import schema
 from app.database.database import engine, Base
 from app.database import models
+from app.api.endpoints.health import router as health_router
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -35,6 +36,9 @@ graphql_app = GraphQLRouter(schema)
 # Include GraphQL endpoint
 app.include_router(graphql_app, prefix="/graphql")
 
+# Include health and database management endpoints
+app.include_router(health_router, prefix="/api/v1", tags=["health", "database"])
+
 @app.get("/")
 async def root():
     """Root endpoint returning API information."""
@@ -42,13 +46,11 @@ async def root():
         "message": f"Welcome to {settings.APP_NAME}",
         "version": settings.APP_VERSION,
         "graphql_endpoint": "/graphql",
+        "database_info_endpoint": "/api/v1/database/info",
+        "health_endpoint": "/api/v1/health",
         "environment": settings.ENVIRONMENT,
+        "database_provider": settings.DATABASE_PROVIDER,
     }
-
-@app.get("/health")
-async def health_check():
-    """Health check endpoint."""
-    return {"status": "healthy", "service": settings.APP_NAME}
 
 if __name__ == "__main__":
     import uvicorn

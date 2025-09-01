@@ -17,6 +17,10 @@ from pathlib import Path
 from datetime import datetime
 import uuid
 from typing import Dict, List, Tuple
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -44,6 +48,10 @@ class HouseholdDataImporter:
         self.db_url = os.getenv('TIGER_CLOUD_DATABASE_URL')
         if not self.db_url:
             raise ValueError("TIGER_CLOUD_DATABASE_URL not found in environment")
+        
+        # Convert postgres:// to postgresql:// if needed
+        if self.db_url.startswith('postgres://'):
+            self.db_url = self.db_url.replace('postgres://', 'postgresql://', 1)
         
         self.engine = create_engine(self.db_url)
         self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)

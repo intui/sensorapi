@@ -11,14 +11,16 @@ from app.core.config import settings
 # Create database engine with NullPool for serverless (no connection pooling)
 # Set connect_args based on database type (PostgreSQL vs SQLite)
 connect_args = {}
-if "postgresql" in settings.DATABASE_URL:
+active_db_url = settings.active_database_url
+
+if "postgresql" in active_db_url:
     connect_args = {
         'connect_timeout': 10,  # Quick connection timeout for PostgreSQL
-        'application_name': 'sensorapi-vercel'  # Identify our app in DB logs
+        'application_name': f'sensorapi-{settings.DATABASE_PROVIDER}'  # Identify our app in DB logs
     }
 
 engine = create_engine(
-    settings.DATABASE_URL,
+    active_db_url,
     echo=settings.DEBUG,  # Log SQL queries in debug mode
     poolclass=None,  # Use NullPool - create fresh connections for each request
     pool_pre_ping=False,  # Don't ping since we're creating fresh connections
