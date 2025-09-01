@@ -150,3 +150,16 @@ cython_debug/
 .DS_Store
 Thumbs.db
 .vercel
+
+# Data files
+import_data/
+*.csv
+*.xlsx
+*.json
+data/
+backups/
+
+# Migration logs
+migration.log
+import_household_data.log
+validation.log
