@@ -32,7 +32,6 @@ import {
   Clock,
   Eye,
   EyeOff,
-  Plus,
   X
 } from 'lucide-react';
 
