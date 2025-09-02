@@ -854,7 +854,5 @@ const SensorReadings: React.FC = () => {
     </div>
   );
 };
-  );
-};
 
 export default SensorReadings;
