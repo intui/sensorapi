@@ -279,6 +279,8 @@ const SensorReadings: React.FC = () => {
     const baseOptions = {
       responsive: true,
       maintainAspectRatio: false,
+      aspectRatio: undefined,
+      height: 800,
       plugins: {
         legend: {
           position: 'top' as const,
@@ -711,7 +713,7 @@ const SensorReadings: React.FC = () => {
             </div>
             
             {isLoading && (
-              <div className="h-[600px] flex items-center justify-center bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+              <div className="h-[800px] flex items-center justify-center bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
                 <div className="text-center">
                   <div className="mb-4">
                     <RefreshCw className="h-12 w-12 text-blue-500 animate-spin mx-auto" />
@@ -741,7 +743,7 @@ const SensorReadings: React.FC = () => {
             )}
             
             {!isLoading && !hasError && allSensorData.some(data => data.readings.length > 0) && (
-              <div className="h-[600px] transition-opacity duration-300 opacity-100">
+              <div className="h-[800px] w-full transition-opacity duration-300 opacity-100" style={{ height: '800px' }}>
                 {chartType === 'line' && <Line data={chartData as ChartData<'line'>} options={chartOptions} />}
                 {chartType === 'bar' && <Bar data={chartData as ChartData<'bar'>} options={chartOptions} />}
                 {chartType === 'scatter' && <Scatter data={chartData as ChartData<'scatter'>} options={chartOptions} />}
