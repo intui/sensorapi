@@ -382,3 +382,29 @@ class UpdateAlertInput:
 
     status: Optional[str] = None
     acknowledged_by: Optional[str] = None
+
+
+@strawberry.type
+class SensorDataRange:
+    """Data range information for a sensor."""
+    
+    start: Optional[datetime]
+    end: Optional[datetime]
+
+
+@strawberry.type 
+class SensorDataStats:
+    """Comprehensive statistics for sensor data."""
+    
+    first_reading: Optional[SensorReading]
+    last_reading: Optional[SensorReading]
+    total_count: int
+    date_range: SensorDataRange
+
+
+@strawberry.type
+class SensorReadingsAround:
+    """Sensor readings before and after a target time."""
+    
+    before: List[SensorReading]
+    after: List[SensorReading]

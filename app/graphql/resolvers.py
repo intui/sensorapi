@@ -19,6 +19,7 @@ from app.database.models import SensorType as SensorTypeModel
 from app.graphql.types import (Alert, CreateLocationInput, CreateSensorInput,
                                CreateSensorReadingInput, CreateSensorTypeInput,
                                Location, Sensor, SensorReading, SensorType,
+                               SensorDataStats, SensorDataRange, SensorReadingsAround,
                                UpdateAlertInput, UpdateLocationInput,
                                UpdateSensorInput, UpdateSensorReadingInput,
                                UpdateSensorStatusInput, UpdateSensorTypeInput)
@@ -120,6 +121,84 @@ class Query:
 
             models = query.all()
             return [SensorReading.from_model(model) for model in models]
+
+    @strawberry.field
+    def sensor_data_stats(self, info: Info, sensor_id: str) -> Optional[SensorDataStats]:
+        """Get comprehensive data statistics for a sensor."""
+        from sqlalchemy import func
+        
+        with get_db_session() as db:
+            # Get first and last readings
+            first_reading = (
+                db.query(SensorReadingModel)
+                .filter(SensorReadingModel.sensor_id == sensor_id)
+                .order_by(SensorReadingModel.timestamp.asc())
+                .first()
+            )
+            
+            last_reading = (
+                db.query(SensorReadingModel)
+                .filter(SensorReadingModel.sensor_id == sensor_id)
+                .order_by(SensorReadingModel.timestamp.desc())
+                .first()
+            )
+            
+            # Get total count
+            total_count = (
+                db.query(func.count(SensorReadingModel.id))
+                .filter(SensorReadingModel.sensor_id == sensor_id)
+                .scalar() or 0
+            )
+            
+            # Create date range
+            date_range = SensorDataRange(
+                start=first_reading.timestamp if first_reading else None,
+                end=last_reading.timestamp if last_reading else None
+            )
+            
+            return SensorDataStats(
+                first_reading=SensorReading.from_model(first_reading) if first_reading else None,
+                last_reading=SensorReading.from_model(last_reading) if last_reading else None,
+                total_count=total_count,
+                date_range=date_range
+            )
+
+    @strawberry.field
+    def sensor_readings_around(
+        self,
+        info: Info,
+        sensor_id: str,
+        target_time: datetime,
+        before: int = 1,
+        after: int = 1
+    ) -> SensorReadingsAround:
+        """Get sensor readings before and after a target time."""
+        
+        with get_db_session() as db:
+            # Get readings before target time
+            before_readings = (
+                db.query(SensorReadingModel)
+                .filter(SensorReadingModel.sensor_id == sensor_id)
+                .filter(SensorReadingModel.timestamp < target_time)
+                .order_by(SensorReadingModel.timestamp.desc())
+                .limit(before)
+                .all()
+            )
+            
+            # Get readings after target time
+            after_readings = (
+                db.query(SensorReadingModel)
+                .filter(SensorReadingModel.sensor_id == sensor_id)
+                .filter(SensorReadingModel.timestamp > target_time)
+                .order_by(SensorReadingModel.timestamp.asc())
+                .limit(after)
+                .all()
+            )
+            
+            return SensorReadingsAround(
+                before=[SensorReading.from_model(model) for model in before_readings],
+                after=[SensorReading.from_model(model) for model in after_readings]
+            )
 
     @strawberry.field
     def alerts(

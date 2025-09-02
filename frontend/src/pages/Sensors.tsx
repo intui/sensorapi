@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation } from '@apollo/client';
-import { GET_SENSORS, GET_SENSOR_TYPES, GET_LOCATIONS, GET_SENSOR_DATA_RANGE } from '../graphql/queries';
+import { GET_SENSORS, GET_SENSOR_TYPES, GET_LOCATIONS, GET_SENSOR_DATA_STATS } from '../graphql/queries';
 import { CREATE_SENSOR, UPDATE_SENSOR, DELETE_SENSOR } from '../graphql/mutations';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
@@ -11,7 +11,7 @@ import type { Sensor, CreateSensorInput } from '../types';
 
 // Component to show data range for a single sensor
 const SensorDataRange: React.FC<{ sensorId: string }> = ({ sensorId }) => {
-  const { data, loading, error } = useQuery(GET_SENSOR_DATA_RANGE, {
+  const { data, loading, error } = useQuery(GET_SENSOR_DATA_STATS, {
     variables: { sensorId },
     errorPolicy: 'ignore'
   });
@@ -25,7 +25,7 @@ const SensorDataRange: React.FC<{ sensorId: string }> = ({ sensorId }) => {
     );
   }
 
-  if (error || !data) {
+  if (error || !data?.sensorDataStats) {
     return (
       <div className="text-xs text-gray-400">
         No data available
@@ -33,11 +33,9 @@ const SensorDataRange: React.FC<{ sensorId: string }> = ({ sensorId }) => {
     );
   }
 
-  const { latest, earliest } = data;
-  const latestDate = latest?.[0]?.timestamp;
-  const earliestDate = earliest?.[0]?.timestamp;
+  const { firstReading, lastReading, totalCount } = data.sensorDataStats;
 
-  if (!latestDate) {
+  if (!lastReading) {
     return (
       <div className="text-xs text-gray-400">
         No readings found
@@ -58,15 +56,18 @@ const SensorDataRange: React.FC<{ sensorId: string }> = ({ sensorId }) => {
       <div className="flex items-center text-green-600">
         <Calendar className="h-3 w-3 mr-1" />
         <span className="font-medium">Latest:</span> 
-        <span className="ml-1">{formatDate(latestDate)}</span>
+        <span className="ml-1">{formatDate(lastReading.timestamp)}</span>
       </div>
-      {earliestDate && (
+      {firstReading && (
         <div className="flex items-center text-blue-600">
           <Database className="h-3 w-3 mr-1" />
           <span className="font-medium">Earliest:</span> 
-          <span className="ml-1">{formatDate(earliestDate)}</span>
+          <span className="ml-1">{formatDate(firstReading.timestamp)}</span>
         </div>
       )}
+      <div className="text-gray-500">
+        <span className="font-medium">{totalCount.toLocaleString()}</span> readings
+      </div>
     </div>
   );
 };

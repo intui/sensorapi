@@ -82,13 +82,37 @@ export const GET_SENSOR_READINGS = gql`
   }
 `;
 
-export const GET_SENSOR_DATA_RANGE = gql`
-  query GetSensorDataRange($sensorId: String!) {
-    latest: sensorReadings(sensorId: $sensorId, limit: 1) {
-      timestamp
+export const GET_SENSOR_DATA_STATS = gql`
+  query GetSensorDataStats($sensorId: String!) {
+    sensorDataStats(sensorId: $sensorId) {
+      firstReading {
+        timestamp
+        value
+      }
+      lastReading {
+        timestamp
+        value
+      }
+      totalCount
+      dateRange {
+        start
+        end
+      }
     }
-    earliest: sensorReadings(sensorId: $sensorId, limit: 1, startTime: "2015-01-01T00:00:00Z", endTime: "2020-01-01T00:00:00Z") {
-      timestamp
+  }
+`;
+
+export const GET_SENSOR_READINGS_AROUND = gql`
+  query GetSensorReadingsAround($sensorId: String!, $targetTime: DateTime!, $before: Int = 1, $after: Int = 1) {
+    sensorReadingsAround(sensorId: $sensorId, targetTime: $targetTime, before: $before, after: $after) {
+      before {
+        timestamp
+        value
+      }
+      after {
+        timestamp
+        value
+      }
     }
   }
 `;
