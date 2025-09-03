@@ -7,6 +7,7 @@ import SensorTypes from './pages/SensorTypes';
 import Locations from './pages/Locations';
 import Sensors from './pages/Sensors';
 import SensorReadings from './pages/SensorReadings';
+import HeatPumpPage from './pages/HeatPump';
 import TestPage from './pages/TestPage';
 import SimpleTest from './pages/SimpleTest';
 
@@ -24,6 +25,7 @@ function App() {
                 <Route path="/locations" element={<Locations />} />
                 <Route path="/sensors" element={<Sensors />} />
                 <Route path="/readings" element={<SensorReadings />} />
+                <Route path="/heatpump" element={<HeatPumpPage />} />
                 <Route path="/test" element={<TestPage />} />
               </Routes>
             </Layout>

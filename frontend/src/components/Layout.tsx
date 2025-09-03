@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Database, MapPin, Thermometer, BarChart3, Activity, Settings } from 'lucide-react';
+import { Database, MapPin, Thermometer, BarChart3, Activity, Settings, Zap } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -15,6 +15,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { name: 'Locations', href: '/locations', icon: MapPin },
     { name: 'Sensor Types', href: '/sensor-types', icon: Database },
     { name: 'Readings', href: '/readings', icon: Activity },
+    { name: 'Heat Pump', href: '/heatpump', icon: Zap },
   ];
 
   return (
