@@ -43,7 +43,7 @@ const COPChart: React.FC<COPChartProps> = ({
     // Filter out null COP values for chart display
     const validData = copData.filter(item => item.cop !== null);
 
-    // Function to interpolate between red and green based on COP value
+    // Function to interpolate between red, yellow, and green based on COP value
     const getCOPColor = (copValue: number) => {
       // Clamp COP value between 3 and 5
       const clampedCop = Math.max(3, Math.min(5, copValue));
@@ -51,10 +51,21 @@ const COPChart: React.FC<COPChartProps> = ({
       // Calculate the ratio from 0 (COP=3) to 1 (COP=5)
       const ratio = (clampedCop - 3) / (5 - 3);
       
-      // Interpolate between red (255,0,0) and green (0,255,0)
-      const red = Math.round(255 * (1 - ratio));
-      const green = Math.round(255 * ratio);
-      const blue = 0;
+      let red, green, blue;
+      
+      if (ratio <= 0.5) {
+        // First half: Red to Yellow (red stays 255, green increases from 0 to 255)
+        const localRatio = ratio * 2; // 0 to 1 for first half
+        red = 255;
+        green = Math.round(255 * localRatio);
+        blue = 0;
+      } else {
+        // Second half: Yellow to Green (red decreases from 255 to 0, green stays 255)
+        const localRatio = (ratio - 0.5) * 2; // 0 to 1 for second half
+        red = Math.round(255 * (1 - localRatio));
+        green = 255;
+        blue = 0;
+      }
       
       return {
         background: `rgba(${red}, ${green}, ${blue}, 0.8)`,
