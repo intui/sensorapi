@@ -1,13 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@apollo/client';
 import { GET_SENSORS, GET_SENSOR_READINGS } from '../../../graphql/queries';
-import type { HeatPumpSensor, EnergyReading, TimeRange, AggregationType } from '../types/heatpump.types';
+import type { HeatPumpSensor, EnergyReading, TimeRange } from '../types/heatpump.types';
 
 interface UseSensorDataProps {
   electricalSensorId: string | null;
   thermalSensorId: string | null;
   timeRange: TimeRange;
-  aggregation: AggregationType;
 }
 
 interface UseSensorDataReturn {
@@ -21,8 +20,7 @@ interface UseSensorDataReturn {
 export const useSensorData = ({
   electricalSensorId,
   thermalSensorId,
-  timeRange,
-  aggregation
+  timeRange
 }: UseSensorDataProps): UseSensorDataReturn => {
   const [electricalReadings, setElectricalReadings] = useState<EnergyReading[]>([]);
   const [thermalReadings, setThermalReadings] = useState<EnergyReading[]>([]);

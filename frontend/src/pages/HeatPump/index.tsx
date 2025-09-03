@@ -70,13 +70,11 @@ const HeatPumpPage: React.FC = () => {
     electricalReadings,
     thermalReadings,
     isLoading: dataLoading,
-    error: dataError,
-    refetch
+    error: dataError
   } = useSensorData({
     electricalSensorId: sensorSelection.electricalSensorId,
     thermalSensorId: sensorSelection.thermalSensorId,
-    timeRange: actualTimeRange,
-    aggregation
+    timeRange: actualTimeRange
   });
 
   // Calculate COP
