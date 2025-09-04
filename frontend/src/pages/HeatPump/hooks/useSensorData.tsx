@@ -62,10 +62,14 @@ export const useSensorData = ({
   // Process electrical readings
   useEffect(() => {
     if (electricalData?.sensorReadings) {
-      const readings = electricalData.sensorReadings.map((reading: any) => ({
-        timestamp: reading.timestamp,
-        value: reading.value
-      }));
+      const readings: EnergyReading[] = electricalData.sensorReadings
+        .map((reading: any) => ({
+          timestamp: reading.timestamp,
+          value: reading.value
+        }))
+        .sort((a: EnergyReading, b: EnergyReading) => 
+          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        );
       setElectricalReadings(readings);
     }
   }, [electricalData]);
@@ -73,10 +77,14 @@ export const useSensorData = ({
   // Process thermal readings
   useEffect(() => {
     if (thermalData?.sensorReadings) {
-      const readings = thermalData.sensorReadings.map((reading: any) => ({
-        timestamp: reading.timestamp,
-        value: reading.value
-      }));
+      const readings: EnergyReading[] = thermalData.sensorReadings
+        .map((reading: any) => ({
+          timestamp: reading.timestamp,
+          value: reading.value
+        }))
+        .sort((a: EnergyReading, b: EnergyReading) => 
+          new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        );
       setThermalReadings(readings);
     }
   }, [thermalData]);

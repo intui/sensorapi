@@ -24,6 +24,7 @@ export interface COPCalculation {
   electricalEnergy: number;
   thermalEnergy: number;
   cop: number | null;
+  _sortDate?: string; // Internal field for proper chronological sorting
 }
 
 export interface TimeRange {

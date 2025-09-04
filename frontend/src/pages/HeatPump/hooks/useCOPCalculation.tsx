@@ -129,12 +129,18 @@ export const useCOPCalculation = ({
           timestamp: getPeriodLabel(sortedElectrical, aggregation),
           electricalEnergy,
           thermalEnergy,
-          cop
+          cop,
+          // Add a sortable date for proper chronological ordering
+          _sortDate: sortedElectrical[0].timestamp
         });
       }
       
-      // Sort by timestamp
-      return copCalculations.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+      // Sort by actual date for proper chronological ordering
+      return copCalculations.sort((a, b) => {
+        const dateA = new Date(a._sortDate || a.timestamp);
+        const dateB = new Date(b._sortDate || b.timestamp);
+        return dateA.getTime() - dateB.getTime();
+      });
       
     } catch (error) {
       console.error('Error calculating COP:', error);
