@@ -4,6 +4,7 @@ import SensorSelector from './components/SensorSelector';
 import TimeControls from './components/TimeControls';
 import EnergyChart from './components/EnergyChart';
 import COPChart from './components/COPChart';
+import LoadingSpinner from '../../components/LoadingSpinner';
 import { useKwhSensors, useSensorData } from './hooks/useSensorData';
 import { useCOPCalculation } from './hooks/useCOPCalculation';
 import type { 
@@ -127,6 +128,8 @@ const HeatPumpPage: React.FC = () => {
   };
 
   const isDataAvailable = sensorSelection.electricalSensorId && sensorSelection.thermalSensorId;
+  const isLoading = sensorsLoading || dataLoading || isCalculating;
+  const hasError = sensorsError || dataError || copError;
 
   return (
     <div className="space-y-6">
@@ -146,43 +149,53 @@ const HeatPumpPage: React.FC = () => {
       {/* Sensor Selection */}
       <div className="bg-white p-6 rounded-lg shadow-sm border">
         <h2 className="text-lg font-medium text-gray-900 mb-4">Sensor Selection</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <SensorSelector
-            label="Electrical Energy Sensor"
-            sensors={kwhSensors}
-            selectedSensorId={sensorSelection.electricalSensorId}
-            onSelect={handleElectricalSensorChange}
-            loading={sensorsLoading}
-            error={sensorsError}
-            placeholder="Select electrical energy sensor"
-          />
-          <SensorSelector
-            label="Thermal Energy Sensor"
-            sensors={kwhSensors}
-            selectedSensorId={sensorSelection.thermalSensorId}
-            onSelect={handleThermalSensorChange}
-            loading={sensorsLoading}
-            error={sensorsError}
-            placeholder="Select thermal energy sensor"
-          />
-        </div>
         
-        {/* Sensor Selection Status */}
-        {!sensorsLoading && kwhSensors.length === 0 && (
-          <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-            <p className="text-sm text-yellow-800">
-              <strong>No kWh sensors found.</strong> Please ensure you have configured sensors with kWh unit type 
-              in your sensor management system.
-            </p>
+        {sensorsLoading ? (
+          <div className="py-8">
+            <LoadingSpinner />
+            <p className="text-center text-gray-500 mt-4">Loading available sensors...</p>
           </div>
-        )}
-        
-        {sensorSelection.electricalSensorId && sensorSelection.thermalSensorId && (
-          <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-md">
-            <p className="text-sm text-green-800">
-              <strong>Ready!</strong> Both sensors selected. Configure time range and view your heat pump performance below.
-            </p>
-          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <SensorSelector
+                label="Electrical Energy Sensor"
+                sensors={kwhSensors}
+                selectedSensorId={sensorSelection.electricalSensorId}
+                onSelect={handleElectricalSensorChange}
+                loading={sensorsLoading}
+                error={sensorsError}
+                placeholder="Select electrical energy sensor"
+              />
+              <SensorSelector
+                label="Thermal Energy Sensor"
+                sensors={kwhSensors}
+                selectedSensorId={sensorSelection.thermalSensorId}
+                onSelect={handleThermalSensorChange}
+                loading={sensorsLoading}
+                error={sensorsError}
+                placeholder="Select thermal energy sensor"
+              />
+            </div>
+            
+            {/* Sensor Selection Status */}
+            {!sensorsLoading && kwhSensors.length === 0 && (
+              <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+                <p className="text-sm text-yellow-800">
+                  <strong>No kWh sensors found.</strong> Please ensure you have configured sensors with kWh unit type 
+                  in your sensor management system.
+                </p>
+              </div>
+            )}
+            
+            {sensorSelection.electricalSensorId && sensorSelection.thermalSensorId && (
+              <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-md">
+                <p className="text-sm text-green-800">
+                  <strong>Ready!</strong> Both sensors selected. Configure time range and view your heat pump performance below.
+                </p>
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -214,9 +227,16 @@ const HeatPumpPage: React.FC = () => {
       </div>
 
       {/* Data Summary */}
-      {isDataAvailable && copData.length > 0 && (
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Performance Summary</h3>
+      <div className="bg-white p-6 rounded-lg shadow-sm border">
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Performance Summary</h3>
+        {dataLoading || isCalculating ? (
+          <div className="py-8">
+            <LoadingSpinner />
+            <p className="text-center text-gray-500 mt-4">
+              {isCalculating ? "Calculating performance metrics..." : "Loading performance data..."}
+            </p>
+          </div>
+        ) : isDataAvailable && copData.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-blue-50 p-4 rounded-lg">
               <div className="text-sm font-medium text-blue-600">Total Electrical Energy</div>
@@ -242,8 +262,15 @@ const HeatPumpPage: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="text-center py-8 text-gray-500">
+            {sensorSelection.electricalSensorId && sensorSelection.thermalSensorId 
+              ? "No data available for selected time range" 
+              : "Select sensors and configure settings to view performance summary"
+            }
+          </div>
+        )}
+      </div>
     </div>
   );
 };
