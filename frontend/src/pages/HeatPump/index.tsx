@@ -5,8 +5,8 @@ import TimeControls from './components/TimeControls';
 import EnergyChart from './components/EnergyChart';
 import COPChart from './components/COPChart';
 import LoadingSpinner from '../../components/LoadingSpinner';
-import { useKwhSensors, useSensorData } from './hooks/useSensorData';
-import { useCOPCalculation } from './hooks/useCOPCalculation';
+import { useKwhSensors } from './hooks/useSensorData';
+import { useOptimizedCOPData } from './hooks/useOptimizedCOPData';
 import type {
   TimeRangeType,
   AggregationType,
@@ -90,26 +90,15 @@ const HeatPumpPage: React.FC = () => {
     }
   }, [kwhSensors, sensorSelection.electricalSensorId, sensorSelection.thermalSensorId]);
 
-  // Fetch sensor data
-  const {
-    electricalReadings,
-    thermalReadings,
-    isLoading: dataLoading,
-    error: dataError
-  } = useSensorData({
-    electricalSensorId: sensorSelection.electricalSensorId,
-    thermalSensorId: sensorSelection.thermalSensorId,
-    timeRange: actualTimeRange
-  });
-
-  // Calculate COP
+  // Use optimized COP data fetching (replaces both useSensorData + useCOPCalculation)
   const {
     copData,
-    isCalculating,
-    error: copError
-  } = useCOPCalculation({
-    electricalReadings,
-    thermalReadings,
+    isLoading: dataLoading,
+    error: dataError
+  } = useOptimizedCOPData({
+    electricalSensorId: sensorSelection.electricalSensorId,
+    thermalSensorId: sensorSelection.thermalSensorId,
+    timeRange: actualTimeRange,
     aggregation
   });
 
@@ -128,8 +117,6 @@ const HeatPumpPage: React.FC = () => {
   };
 
   const isDataAvailable = sensorSelection.electricalSensorId && sensorSelection.thermalSensorId;
-  const isLoading = sensorsLoading || dataLoading || isCalculating;
-  const hasError = sensorsError || dataError || copError;
 
   return (
     <div className="space-y-6">
@@ -215,39 +202,37 @@ const HeatPumpPage: React.FC = () => {
       <div className="space-y-6">
         <EnergyChart
           copData={copData}
-          isLoading={dataLoading || isCalculating}
-          error={dataError || copError}
+          isLoading={dataLoading}
+          error={dataError}
         />
 
         <COPChart
           copData={copData}
-          isLoading={dataLoading || isCalculating}
-          error={dataError || copError}
+          isLoading={dataLoading}
+          error={dataError}
         />
       </div>
 
       {/* Data Summary */}
       <div className="bg-white p-6 rounded-lg shadow-sm border">
         <h3 className="text-lg font-medium text-gray-900 mb-4">Performance Summary</h3>
-        {dataLoading || isCalculating ? (
+        {dataLoading ? (
           <div className="py-8">
             <LoadingSpinner />
-            <p className="text-center text-gray-500 mt-4">
-              {isCalculating ? "Calculating performance metrics..." : "Loading performance data..."}
-            </p>
+            <p className="text-center text-gray-500 mt-4">Loading performance data...</p>
           </div>
         ) : isDataAvailable && copData.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-blue-50 p-4 rounded-lg">
               <div className="text-sm font-medium text-blue-600">Total Electrical Energy</div>
               <div className="text-2xl font-bold text-blue-900">
-                {copData.reduce((sum, item) => sum + item.electricalEnergy, 0).toFixed(2)} kWh
+                {copData.reduce((sum: number, item) => sum + item.electricalEnergy, 0).toFixed(2)} kWh
               </div>
             </div>
             <div className="bg-orange-50 p-4 rounded-lg">
               <div className="text-sm font-medium text-orange-600">Total Thermal Energy</div>
               <div className="text-2xl font-bold text-orange-900">
-                {copData.reduce((sum, item) => sum + item.thermalEnergy, 0).toFixed(2)} kWh
+                {copData.reduce((sum: number, item) => sum + item.thermalEnergy, 0).toFixed(2)} kWh
               </div>
             </div>
             <div className="bg-green-50 p-4 rounded-lg">
@@ -256,7 +241,7 @@ const HeatPumpPage: React.FC = () => {
                 {(() => {
                   const validCops = copData.filter(item => item.cop !== null).map(item => item.cop!);
                   if (validCops.length === 0) return 'N/A';
-                  const avgCop = validCops.reduce((sum, cop) => sum + cop, 0) / validCops.length;
+                  const avgCop = validCops.reduce((sum: number, cop: number) => sum + cop, 0) / validCops.length;
                   return avgCop.toFixed(2);
                 })()}
               </div>
