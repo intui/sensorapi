@@ -7,11 +7,11 @@ import COPChart from './components/COPChart';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { useKwhSensors, useSensorData } from './hooks/useSensorData';
 import { useCOPCalculation } from './hooks/useCOPCalculation';
-import type { 
-  TimeRangeType, 
-  AggregationType, 
+import type {
+  TimeRangeType,
+  AggregationType,
   TimeRange,
-  SensorSelection 
+  SensorSelection
 } from './types/heatpump.types';
 
 const HeatPumpPage: React.FC = () => {
@@ -19,7 +19,7 @@ const HeatPumpPage: React.FC = () => {
     electricalSensorId: null,
     thermalSensorId: null
   });
-  
+
   const [timeRange, setTimeRange] = useState<TimeRangeType>('7d');
   const [aggregation, setAggregation] = useState<AggregationType>('day');
   const [customStartDate, setCustomStartDate] = useState<string>('');
@@ -29,7 +29,7 @@ const HeatPumpPage: React.FC = () => {
   const actualTimeRange: TimeRange = useMemo(() => {
     const now = new Date();
     let startTime = new Date();
-    
+
     if (timeRange === 'custom') {
       if (customStartDate && customEndDate) {
         return {
@@ -52,7 +52,7 @@ const HeatPumpPage: React.FC = () => {
           break;
       }
     }
-    
+
     return {
       startTime: startTime.toISOString(),
       endTime: now.toISOString()
@@ -60,10 +60,10 @@ const HeatPumpPage: React.FC = () => {
   }, [timeRange, customStartDate, customEndDate]);
 
   // Fetch available sensors
-  const { 
-    sensors: kwhSensors, 
-    loading: sensorsLoading, 
-    error: sensorsError 
+  const {
+    sensors: kwhSensors,
+    loading: sensorsLoading,
+    error: sensorsError
   } = useKwhSensors();
 
   // Auto-select default sensors when available
@@ -72,15 +72,15 @@ const HeatPumpPage: React.FC = () => {
       // Default sensor names from the screenshot
       const defaultElectricalSensorName = 'wärmepumpe_Energie_sum';
       const defaultThermalSensorName = 'idm_aero_hp_wärmemenge_warmwasser';
-      
+
       // Find sensors by name (partial match to handle description text)
-      const electricalSensor = kwhSensors.find(sensor => 
+      const electricalSensor = kwhSensors.find(sensor =>
         sensor.name.includes(defaultElectricalSensorName)
       );
-      const thermalSensor = kwhSensors.find(sensor => 
+      const thermalSensor = kwhSensors.find(sensor =>
         sensor.name.includes(defaultThermalSensorName)
       );
-      
+
       if (electricalSensor || thermalSensor) {
         setSensorSelection({
           electricalSensorId: electricalSensor?.id || null,
@@ -149,7 +149,7 @@ const HeatPumpPage: React.FC = () => {
       {/* Sensor Selection */}
       <div className="bg-white p-6 rounded-lg shadow-sm border">
         <h2 className="text-lg font-medium text-gray-900 mb-4">Sensor Selection</h2>
-        
+
         {sensorsLoading ? (
           <div className="py-8">
             <LoadingSpinner />
@@ -177,17 +177,17 @@ const HeatPumpPage: React.FC = () => {
                 placeholder="Select thermal energy sensor"
               />
             </div>
-            
+
             {/* Sensor Selection Status */}
             {!sensorsLoading && kwhSensors.length === 0 && (
               <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
                 <p className="text-sm text-yellow-800">
-                  <strong>No kWh sensors found.</strong> Please ensure you have configured sensors with kWh unit type 
+                  <strong>No kWh sensors found.</strong> Please ensure you have configured sensors with kWh unit type
                   in your sensor management system.
                 </p>
               </div>
             )}
-            
+
             {sensorSelection.electricalSensorId && sensorSelection.thermalSensorId && (
               <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-md">
                 <p className="text-sm text-green-800">
@@ -218,7 +218,7 @@ const HeatPumpPage: React.FC = () => {
           isLoading={dataLoading || isCalculating}
           error={dataError || copError}
         />
-        
+
         <COPChart
           copData={copData}
           isLoading={dataLoading || isCalculating}
@@ -264,8 +264,8 @@ const HeatPumpPage: React.FC = () => {
           </div>
         ) : (
           <div className="text-center py-8 text-gray-500">
-            {sensorSelection.electricalSensorId && sensorSelection.thermalSensorId 
-              ? "No data available for selected time range" 
+            {sensorSelection.electricalSensorId && sensorSelection.thermalSensorId
+              ? "No data available for selected time range"
               : "Select sensors and configure settings to view performance summary"
             }
           </div>
