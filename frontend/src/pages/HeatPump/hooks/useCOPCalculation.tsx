@@ -1,4 +1,4 @@
-import { useMemo, useCallback } from 'react';
+import { useMemo } from 'react';
 import type { EnergyReading, COPCalculation, AggregationType } from '../types/heatpump.types';
 
 interface UseCOPCalculationProps {
