@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Activity } from 'lucide-react';
 import SensorSelector from './components/SensorSelector';
 import TimeControls from './components/TimeControls';
@@ -19,8 +19,8 @@ const HeatPumpPage: React.FC = () => {
     thermalSensorId: null
   });
   
-  const [timeRange, setTimeRange] = useState<TimeRangeType>('24h');
-  const [aggregation, setAggregation] = useState<AggregationType>('hour');
+  const [timeRange, setTimeRange] = useState<TimeRangeType>('7d');
+  const [aggregation, setAggregation] = useState<AggregationType>('day');
   const [customStartDate, setCustomStartDate] = useState<string>('');
   const [customEndDate, setCustomEndDate] = useState<string>('');
 
@@ -64,6 +64,30 @@ const HeatPumpPage: React.FC = () => {
     loading: sensorsLoading, 
     error: sensorsError 
   } = useKwhSensors();
+
+  // Auto-select default sensors when available
+  useEffect(() => {
+    if (kwhSensors.length > 0 && !sensorSelection.electricalSensorId && !sensorSelection.thermalSensorId) {
+      // Default sensor names from the screenshot
+      const defaultElectricalSensorName = 'wärmepumpe_Energie_sum';
+      const defaultThermalSensorName = 'idm_aero_hp_wärmemenge_warmwasser';
+      
+      // Find sensors by name (partial match to handle description text)
+      const electricalSensor = kwhSensors.find(sensor => 
+        sensor.name.includes(defaultElectricalSensorName)
+      );
+      const thermalSensor = kwhSensors.find(sensor => 
+        sensor.name.includes(defaultThermalSensorName)
+      );
+      
+      if (electricalSensor || thermalSensor) {
+        setSensorSelection({
+          electricalSensorId: electricalSensor?.id || null,
+          thermalSensorId: thermalSensor?.id || null
+        });
+      }
+    }
+  }, [kwhSensors, sensorSelection.electricalSensorId, sensorSelection.thermalSensorId]);
 
   // Fetch sensor data
   const {
