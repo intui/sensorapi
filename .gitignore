@@ -163,3 +163,27 @@ backups/
 migration.log
 import_household_data.log
 validation.log
+
+# Security and cleanup
+*.backup
+*.bak
+.env.local
+.env.production
+.env.staging
+.env.test
+*.key
+*.pem
+*.p12
+secrets/
+
+# Development artifacts
+=*.*.*
+=*.* 
+*.log
+*.db
+debug_*.py
+temp_*.py
+test_*.db
+
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
