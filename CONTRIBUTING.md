@@ -59,7 +59,7 @@ Unsure where to begin contributing? You can start by looking through `beginner` 
 
 ### Prerequisites
 
-- Python 3.9+ 
+- Python 3.9+
 - Node.js 16+ (for frontend)
 - PostgreSQL 12+
 - Git
@@ -161,6 +161,7 @@ python run_tests.py
 ## Pull Request Process
 
 1. **Create a branch**: Create a new branch from `main` for your changes
+
    ```bash
    git checkout -b feature/your-feature-name
    ```
@@ -172,11 +173,13 @@ python run_tests.py
 4. **Update documentation**: Update relevant documentation
 
 5. **Commit your changes**: Use clear commit messages
+
    ```bash
    git commit -m "feat: add new sensor type validation"
    ```
 
-6. **Push to your fork**: 
+6. **Push to your fork**:
+
    ```bash
    git push origin feature/your-feature-name
    ```

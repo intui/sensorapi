@@ -11,7 +11,7 @@ We release patches for security vulnerabilities. Which versions are eligible for
 
 ## Reporting a Vulnerability
 
-Please report security vulnerabilities to **security@sensorapi.dev** (or create a GitHub Security Advisory).
+Please report security vulnerabilities to **<security@sensorapi.dev>** (or create a GitHub Security Advisory).
 
 **Please do not report security vulnerabilities through public GitHub issues.**
 
@@ -65,4 +65,4 @@ We will acknowledge security researchers who responsibly disclose vulnerabilitie
 
 ## Contact
 
-For security-related questions or concerns, please contact us at security@sensorapi.dev
+For security-related questions or concerns, please contact us at <security@sensorapi.dev>
