@@ -18,15 +18,40 @@ interface UseOptimizedCOPDataReturn {
 
 // Helper function to generate time periods based on aggregation
 const generateTimePeriods = (timeRange: TimeRange, aggregation: AggregationType) => {
+    console.group('🕒 generateTimePeriods - DEBUG');
+    console.log('📅 Input timeRange:', {
+        startTime: timeRange.startTime,
+        endTime: timeRange.endTime,
+        aggregation
+    });
+
     const periods: { start: Date; end: Date; label: string }[] = [];
     const startTime = new Date(timeRange.startTime);
     const endTime = new Date(timeRange.endTime);
 
+    console.log('🌍 Timezone Analysis:', {
+        userTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        startTimeLocal: startTime.toLocaleString('en-US', { timeZoneName: 'short' }),
+        startTimeUTC: startTime.toISOString(),
+        endTimeLocal: endTime.toLocaleString('en-US', { timeZoneName: 'short' }),
+        endTimeUTC: endTime.toISOString(),
+        timezoneOffset: startTime.getTimezoneOffset() + ' minutes'
+    });
+
     let current = new Date(startTime);
+    let periodCount = 0;
 
     while (current < endTime) {
+        periodCount++;
         let periodEnd = new Date(current);
         let label: string;
+
+        console.log(`\n📊 Period ${periodCount}:`);
+        console.log('  Start:', {
+            iso: current.toISOString(),
+            local: current.toLocaleString('en-US', { timeZoneName: 'short' }),
+            utc: current.toUTCString()
+        });
 
         switch (aggregation) {
             case 'hour':
@@ -37,6 +62,7 @@ const generateTimePeriods = (timeRange: TimeRange, aggregation: AggregationType)
                     hour: 'numeric',
                     hour12: true
                 });
+                console.log('  ⏰ Hour aggregation - adding 1 hour');
                 break;
             case 'day':
                 periodEnd.setDate(current.getDate() + 1);
@@ -45,6 +71,7 @@ const generateTimePeriods = (timeRange: TimeRange, aggregation: AggregationType)
                     day: 'numeric',
                     year: 'numeric'
                 });
+                console.log('  📅 Day aggregation - adding 1 day');
                 break;
             case 'month':
                 periodEnd.setMonth(current.getMonth() + 1);
@@ -52,16 +79,28 @@ const generateTimePeriods = (timeRange: TimeRange, aggregation: AggregationType)
                     month: 'long',
                     year: 'numeric'
                 });
+                console.log('  🗓️ Month aggregation - adding 1 month');
                 break;
             default:
                 periodEnd.setHours(current.getHours() + 1);
                 label = current.toISOString();
+                console.log('  ⚠️ Default aggregation - adding 1 hour');
         }
 
         // Don't exceed the end time
         if (periodEnd > endTime) {
+            console.log('  ⚠️ Period end exceeds time range, clamping to end time');
             periodEnd = new Date(endTime);
         }
+
+        console.log('  End:', {
+            iso: periodEnd.toISOString(),
+            local: periodEnd.toLocaleString('en-US', { timeZoneName: 'short' }),
+            utc: periodEnd.toUTCString()
+        });
+        console.log('  Label:', label);
+        console.log('  Duration (ms):', periodEnd.getTime() - current.getTime());
+        console.log('  Duration (hours):', (periodEnd.getTime() - current.getTime()) / (1000 * 60 * 60));
 
         periods.push({
             start: new Date(current),
@@ -70,8 +109,29 @@ const generateTimePeriods = (timeRange: TimeRange, aggregation: AggregationType)
         });
 
         current = new Date(periodEnd);
+
+        // Safety check to prevent infinite loops
+        if (periodCount > 1000) {
+            console.error('⚠️ SAFETY BREAK: Too many periods generated, stopping to prevent infinite loop');
+            break;
+        }
     }
 
+    console.log('\n📈 Summary:', {
+        totalPeriods: periods.length,
+        firstPeriod: periods[0] ? {
+            start: periods[0].start.toISOString(),
+            end: periods[0].end.toISOString(),
+            label: periods[0].label
+        } : null,
+        lastPeriod: periods[periods.length - 1] ? {
+            start: periods[periods.length - 1].start.toISOString(),
+            end: periods[periods.length - 1].end.toISOString(),
+            label: periods[periods.length - 1].label
+        } : null
+    });
+
+    console.groupEnd();
     return periods;
 };
 
@@ -101,8 +161,14 @@ export const useOptimizedCOPData = ({
 
     // Generate time periods
     const timePeriods = useMemo(() => {
-        if (!timeRange.startTime || !timeRange.endTime) return [];
-        return generateTimePeriods(timeRange, aggregation);
+        if (!timeRange.startTime || !timeRange.endTime) {
+            console.log('🚫 generateTimePeriods skipped: missing timeRange', { timeRange });
+            return [];
+        }
+        console.log('🚀 Generating time periods...', { timeRange, aggregation });
+        const periods = generateTimePeriods(timeRange, aggregation);
+        console.log('✅ Time periods generated:', periods.length);
+        return periods;
     }, [timeRange, aggregation]);
 
     useEffect(() => {
@@ -203,6 +269,31 @@ export const useOptimizedCOPData = ({
                         // Calculate COP (thermal output / electrical input)
                         const cop = electricalEnergy > 0 ? thermalEnergy / electricalEnergy : null;
 
+                        console.log(`🔋 Energy Calculation for ${period.label}:`, {
+                            electrical: {
+                                start: electricalStart,
+                                end: electricalEnd,
+                                energy: electricalEnergy,
+                                unit: 'kWh'
+                            },
+                            thermal: {
+                                start: thermalStart,
+                                end: thermalEnd,
+                                energy: thermalEnergy,
+                                unit: 'kWh'
+                            },
+                            cop: {
+                                value: cop,
+                                calculation: `${thermalEnergy} / ${electricalEnergy} = ${cop}`,
+                                valid: cop !== null,
+                                efficiency: cop ? (
+                                    cop < 2 ? 'Poor' :
+                                        cop < 3 ? 'Fair' :
+                                            cop < 4 ? 'Good' : 'Excellent'
+                                ) : 'N/A'
+                            }
+                        });
+
                         copCalculations.push({
                             timestamp: period.label,
                             electricalEnergy,
@@ -223,6 +314,36 @@ export const useOptimizedCOPData = ({
                     const dateB = new Date(b._sortDate || b.timestamp);
                     return dateA.getTime() - dateB.getTime();
                 });
+
+                console.group('📊 COP Calculation Summary');
+                console.log('📈 Final Results:', {
+                    totalCalculations: copCalculations.length,
+                    validCOPs: copCalculations.filter(c => c.cop !== null).length,
+                    invalidCOPs: copCalculations.filter(c => c.cop === null).length,
+                    averageCOP: copCalculations.length > 0 ?
+                        copCalculations.filter(c => c.cop !== null).reduce((sum, c) => sum + (c.cop || 0), 0) /
+                        copCalculations.filter(c => c.cop !== null).length : 0,
+                    totalElectricalEnergy: copCalculations.reduce((sum, c) => sum + c.electricalEnergy, 0),
+                    totalThermalEnergy: copCalculations.reduce((sum, c) => sum + c.thermalEnergy, 0),
+                    overallCOP: copCalculations.reduce((sum, c) => sum + c.electricalEnergy, 0) > 0 ?
+                        copCalculations.reduce((sum, c) => sum + c.thermalEnergy, 0) /
+                        copCalculations.reduce((sum, c) => sum + c.electricalEnergy, 0) : null
+                });
+
+                if (copCalculations.length > 0) {
+                    console.table(copCalculations.map(calc => ({
+                        period: calc.timestamp,
+                        electrical_kWh: calc.electricalEnergy.toFixed(3),
+                        thermal_kWh: calc.thermalEnergy.toFixed(3),
+                        cop: calc.cop ? calc.cop.toFixed(2) : 'N/A',
+                        efficiency: calc.cop ? (
+                            calc.cop < 2 ? 'Poor' :
+                                calc.cop < 3 ? 'Fair' :
+                                    calc.cop < 4 ? 'Good' : 'Excellent'
+                        ) : 'N/A'
+                    })));
+                }
+                console.groupEnd();
 
                 setCopData(copCalculations);
             } catch (fetchError) {
