@@ -38,7 +38,51 @@ const generateTimePeriods = (timeRange: TimeRange, aggregation: AggregationType)
         timezoneOffset: startTime.getTimezoneOffset() + ' minutes'
     });
 
-    let current = new Date(startTime);
+    // Helper function to align date to period boundary
+    const alignToPeriodStart = (date: Date, aggregationType: AggregationType): Date => {
+        const aligned = new Date(date);
+        switch (aggregationType) {
+            case 'hour':
+                // Align to start of hour (HH:00:00.000)
+                aligned.setMinutes(0, 0, 0);
+                break;
+            case 'day':
+                // Align to start of day (00:00:00.000)
+                aligned.setHours(0, 0, 0, 0);
+                break;
+            case 'month':
+                // Align to start of month (1st day, 00:00:00.000)
+                aligned.setDate(1);
+                aligned.setHours(0, 0, 0, 0);
+                break;
+        }
+        return aligned;
+    };
+
+    // Start from the aligned boundary that includes the start time
+    let current = alignToPeriodStart(startTime, aggregation);
+
+    // If the aligned start is after our actual start time, go back one period
+    if (current > startTime) {
+        switch (aggregation) {
+            case 'hour':
+                current.setHours(current.getHours() - 1);
+                break;
+            case 'day':
+                current.setDate(current.getDate() - 1);
+                break;
+            case 'month':
+                current.setMonth(current.getMonth() - 1);
+                break;
+        }
+    }
+
+    console.log('📐 Boundary Alignment:', {
+        originalStart: startTime.toISOString(),
+        alignedStart: current.toISOString(),
+        aggregation
+    });
+
     let periodCount = 0;
 
     while (current < endTime) {
@@ -55,6 +99,7 @@ const generateTimePeriods = (timeRange: TimeRange, aggregation: AggregationType)
 
         switch (aggregation) {
             case 'hour':
+                // End of hour period (next hour start)
                 periodEnd.setHours(current.getHours() + 1);
                 label = current.toLocaleString('en-US', {
                     month: 'short',
@@ -62,35 +107,31 @@ const generateTimePeriods = (timeRange: TimeRange, aggregation: AggregationType)
                     hour: 'numeric',
                     hour12: true
                 });
-                console.log('  ⏰ Hour aggregation - adding 1 hour');
+                console.log('  ⏰ Hour aggregation - full hour boundary');
                 break;
             case 'day':
+                // End of day period (next day start at midnight)
                 periodEnd.setDate(current.getDate() + 1);
                 label = current.toLocaleDateString('en-US', {
                     month: 'short',
                     day: 'numeric',
                     year: 'numeric'
                 });
-                console.log('  📅 Day aggregation - adding 1 day');
+                console.log('  📅 Day aggregation - full calendar day (midnight to midnight)');
                 break;
             case 'month':
+                // End of month period (next month start)
                 periodEnd.setMonth(current.getMonth() + 1);
                 label = current.toLocaleDateString('en-US', {
                     month: 'long',
                     year: 'numeric'
                 });
-                console.log('  🗓️ Month aggregation - adding 1 month');
+                console.log('  🗓️ Month aggregation - full calendar month');
                 break;
             default:
                 periodEnd.setHours(current.getHours() + 1);
                 label = current.toISOString();
-                console.log('  ⚠️ Default aggregation - adding 1 hour');
-        }
-
-        // Don't exceed the end time
-        if (periodEnd > endTime) {
-            console.log('  ⚠️ Period end exceeds time range, clamping to end time');
-            periodEnd = new Date(endTime);
+                console.log('  ⚠️ Default aggregation - hour boundary');
         }
 
         console.log('  End:', {
@@ -101,6 +142,22 @@ const generateTimePeriods = (timeRange: TimeRange, aggregation: AggregationType)
         console.log('  Label:', label);
         console.log('  Duration (ms):', periodEnd.getTime() - current.getTime());
         console.log('  Duration (hours):', (periodEnd.getTime() - current.getTime()) / (1000 * 60 * 60));
+
+        // Validate period boundaries
+        const isProperBoundary = (() => {
+            switch (aggregation) {
+                case 'hour':
+                    return current.getMinutes() === 0 && current.getSeconds() === 0 && current.getMilliseconds() === 0;
+                case 'day':
+                    return current.getHours() === 0 && current.getMinutes() === 0 && current.getSeconds() === 0 && current.getMilliseconds() === 0;
+                case 'month':
+                    return current.getDate() === 1 && current.getHours() === 0 && current.getMinutes() === 0 && current.getSeconds() === 0 && current.getMilliseconds() === 0;
+                default:
+                    return true;
+            }
+        })();
+
+        console.log('  ✅ Proper boundary alignment:', isProperBoundary);
 
         periods.push({
             start: new Date(current),
@@ -119,15 +176,29 @@ const generateTimePeriods = (timeRange: TimeRange, aggregation: AggregationType)
 
     console.log('\n📈 Summary:', {
         totalPeriods: periods.length,
+        aggregationType: aggregation,
+        boundaryAlignment: aggregation === 'day' ? 'midnight-to-midnight' :
+            aggregation === 'hour' ? 'hour-to-hour' :
+                aggregation === 'month' ? 'month-to-month' : 'custom',
         firstPeriod: periods[0] ? {
             start: periods[0].start.toISOString(),
             end: periods[0].end.toISOString(),
-            label: periods[0].label
+            label: periods[0].label,
+            isProperBoundary: aggregation === 'day' ?
+                periods[0].start.getHours() === 0 && periods[0].start.getMinutes() === 0 :
+                aggregation === 'hour' ?
+                    periods[0].start.getMinutes() === 0 && periods[0].start.getSeconds() === 0 :
+                    true
         } : null,
         lastPeriod: periods[periods.length - 1] ? {
             start: periods[periods.length - 1].start.toISOString(),
             end: periods[periods.length - 1].end.toISOString(),
-            label: periods[periods.length - 1].label
+            label: periods[periods.length - 1].label,
+            isProperBoundary: aggregation === 'day' ?
+                periods[periods.length - 1].start.getHours() === 0 && periods[periods.length - 1].start.getMinutes() === 0 :
+                aggregation === 'hour' ?
+                    periods[periods.length - 1].start.getMinutes() === 0 && periods[periods.length - 1].start.getSeconds() === 0 :
+                    true
         } : null
     });
 
@@ -263,28 +334,50 @@ export const useOptimizedCOPData = ({
                         }
 
                         // Calculate energy consumption for the period
-                        const electricalEnergy = Math.max(0, electricalEnd - electricalStart);
-                        const thermalEnergy = Math.max(0, thermalEnd - thermalStart);
+                        const electricalEnergyRaw = electricalEnd - electricalStart;
+                        const thermalEnergyRaw = thermalEnd - thermalStart;
+
+                        // Round to 3 decimal places to handle floating-point precision issues
+                        // and apply a minimum threshold to filter out noise
+                        const ENERGY_PRECISION = 3;
+                        const MIN_ENERGY_THRESHOLD = 0.001; // 1 Wh minimum
+
+                        const electricalEnergy = Math.round(electricalEnergyRaw * Math.pow(10, ENERGY_PRECISION)) / Math.pow(10, ENERGY_PRECISION);
+                        const thermalEnergy = Math.round(thermalEnergyRaw * Math.pow(10, ENERGY_PRECISION)) / Math.pow(10, ENERGY_PRECISION);
+
+                        // Apply minimum threshold - treat very small values as zero
+                        const electricalEnergyFiltered = Math.abs(electricalEnergy) < MIN_ENERGY_THRESHOLD ? 0 : Math.max(0, electricalEnergy);
+                        const thermalEnergyFiltered = Math.abs(thermalEnergy) < MIN_ENERGY_THRESHOLD ? 0 : Math.max(0, thermalEnergy);
 
                         // Calculate COP (thermal output / electrical input)
-                        const cop = electricalEnergy > 0 ? thermalEnergy / electricalEnergy : null;
+                        const cop = electricalEnergyFiltered > 0 ? thermalEnergyFiltered / electricalEnergyFiltered : null;
 
                         console.log(`🔋 Energy Calculation for ${period.label}:`, {
                             electrical: {
                                 start: electricalStart,
                                 end: electricalEnd,
-                                energy: electricalEnergy,
+                                energyRaw: electricalEnergyRaw,
+                                energyRounded: electricalEnergy,
+                                energyFiltered: electricalEnergyFiltered,
                                 unit: 'kWh'
                             },
                             thermal: {
                                 start: thermalStart,
                                 end: thermalEnd,
-                                energy: thermalEnergy,
+                                energyRaw: thermalEnergyRaw,
+                                energyRounded: thermalEnergy,
+                                energyFiltered: thermalEnergyFiltered,
                                 unit: 'kWh'
+                            },
+                            precision: {
+                                floatingPointError: Math.abs(electricalEnergyRaw) < MIN_ENERGY_THRESHOLD || Math.abs(thermalEnergyRaw) < MIN_ENERGY_THRESHOLD,
+                                electricalDiff: electricalEnd - electricalStart,
+                                thermalDiff: thermalEnd - thermalStart,
+                                threshold: MIN_ENERGY_THRESHOLD
                             },
                             cop: {
                                 value: cop,
-                                calculation: `${thermalEnergy} / ${electricalEnergy} = ${cop}`,
+                                calculation: `${thermalEnergyFiltered} / ${electricalEnergyFiltered} = ${cop}`,
                                 valid: cop !== null,
                                 efficiency: cop ? (
                                     cop < 2 ? 'Poor' :
@@ -296,8 +389,8 @@ export const useOptimizedCOPData = ({
 
                         copCalculations.push({
                             timestamp: period.label,
-                            electricalEnergy,
-                            thermalEnergy,
+                            electricalEnergy: electricalEnergyFiltered,
+                            thermalEnergy: thermalEnergyFiltered,
                             cop,
                             _sortDate: period.start.toISOString()
                         });

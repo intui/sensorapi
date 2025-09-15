@@ -69,23 +69,45 @@ const HeatPumpPage: React.FC = () => {
   // Auto-select default sensors when available
   useEffect(() => {
     if (kwhSensors.length > 0 && !sensorSelection.electricalSensorId && !sensorSelection.thermalSensorId) {
-      // Default sensor names from the screenshot
-      const defaultElectricalSensorName = 'wärmepumpe_Energie_sum';
-      const defaultThermalSensorName = 'idm_aero_hp_wärmemenge_warmwasser';
+      // Default sensor names based on actual database values
+      const defaultElectricalSensorName = 'warmepumpe_Energie_sum';  // without ä umlaut
+      const defaultThermalSensorName = 'idm_aero_hp_warmemenge_gesamt';  // without ä umlaut
 
-      // Find sensors by name (partial match to handle description text)
+      console.log('🔍 Auto-selecting default sensors...');
+      console.log('Available sensors:', kwhSensors.map(s => ({
+        id: s.id,
+        name: s.name,
+        type: s.sensorType.name
+      })));
+
+      // Find sensors by name (exact match on sensor name)
       const electricalSensor = kwhSensors.find(sensor =>
-        sensor.name.includes(defaultElectricalSensorName)
+        sensor.name === defaultElectricalSensorName
       );
       const thermalSensor = kwhSensors.find(sensor =>
-        sensor.name.includes(defaultThermalSensorName)
+        sensor.name === defaultThermalSensorName
       );
 
+      console.log('🎯 Sensor matching results:', {
+        electrical: {
+          looking_for: defaultElectricalSensorName,
+          found: electricalSensor ? { id: electricalSensor.id, name: electricalSensor.name } : null
+        },
+        thermal: {
+          looking_for: defaultThermalSensorName,
+          found: thermalSensor ? { id: thermalSensor.id, name: thermalSensor.name } : null
+        }
+      });
+
       if (electricalSensor || thermalSensor) {
-        setSensorSelection({
+        const newSelection = {
           electricalSensorId: electricalSensor?.id || null,
           thermalSensorId: thermalSensor?.id || null
-        });
+        };
+        console.log('✅ Setting default sensor selection:', newSelection);
+        setSensorSelection(newSelection);
+      } else {
+        console.log('⚠️ No default sensors found, user will need to select manually');
       }
     }
   }, [kwhSensors, sensorSelection.electricalSensorId, sensorSelection.thermalSensorId]);
