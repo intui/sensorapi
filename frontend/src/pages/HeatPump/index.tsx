@@ -69,9 +69,9 @@ const HeatPumpPage: React.FC = () => {
   // Auto-select default sensors when available
   useEffect(() => {
     if (kwhSensors.length > 0 && !sensorSelection.electricalSensorId && !sensorSelection.thermalSensorId) {
-      // Default sensor names based on actual database values
-      const defaultElectricalSensorName = 'warmepumpe_Energie_sum';  // without ä umlaut
-      const defaultThermalSensorName = 'idm_aero_hp_warmemenge_gesamt';  // without ä umlaut
+      // Default sensor names from the user interface (actual names from database)
+      const defaultElectricalSensorName = 'warmepumpe_Energie_sum';
+      const defaultThermalSensorName = 'idm_aero_hp_warmemenge_gesamt';
 
       console.log('🔍 Auto-selecting default sensors...');
       console.log('Available sensors:', kwhSensors.map(s => ({
