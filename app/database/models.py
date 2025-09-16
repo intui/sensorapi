@@ -73,6 +73,9 @@ class Location(Base):
     country = Column(String(100))
     postal_code = Column(String(20))
     
+    # Timezone information
+    timezone = Column(String(50))  # e.g., "America/New_York", "UTC", "Europe/London"
+    
     # Metadata
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
