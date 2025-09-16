@@ -408,3 +408,13 @@ class SensorReadingsAround:
     
     before: List[SensorReading]
     after: List[SensorReading]
+
+
+@strawberry.type
+class SingleDatapoint:
+    """A single sensor datapoint with optional interpolation."""
+    
+    value: float
+    timestamp: datetime
+    is_interpolated: bool = False
+    source_readings: Optional[List[SensorReading]] = None
