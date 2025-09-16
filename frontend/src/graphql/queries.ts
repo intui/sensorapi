@@ -116,3 +116,17 @@ export const GET_SENSOR_READINGS_AROUND = gql`
     }
   }
 `;
+
+export const GET_SENSOR_DATAPOINT = gql`
+  query GetSensorDatapoint($sensorId: String!, $targetTime: DateTime!, $direction: String = "before") {
+    sensorDatapoint(sensorId: $sensorId, targetTime: $targetTime, direction: $direction) {
+      value
+      timestamp
+      isInterpolated
+      sourceReadings {
+        timestamp
+        value
+      }
+    }
+  }
+`;

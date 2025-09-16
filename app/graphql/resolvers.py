@@ -20,7 +20,7 @@ from app.graphql.types import (Alert, CreateLocationInput, CreateSensorInput,
                                CreateSensorReadingInput, CreateSensorTypeInput,
                                Location, Sensor, SensorReading, SensorType,
                                SensorDataStats, SensorDataRange, SensorReadingsAround,
-                               UpdateAlertInput, UpdateLocationInput,
+                               SingleDatapoint, UpdateAlertInput, UpdateLocationInput,
                                UpdateSensorInput, UpdateSensorReadingInput,
                                UpdateSensorStatusInput, UpdateSensorTypeInput)
 
@@ -199,6 +199,117 @@ class Query:
                 before=[SensorReading.from_model(model) for model in before_readings],
                 after=[SensorReading.from_model(model) for model in after_readings]
             )
+
+    @strawberry.field
+    def sensor_datapoint(
+        self,
+        info: Info,
+        sensor_id: str,
+        target_time: datetime,
+        direction: str = "before",  # "before", "after", or "interpolate"
+    ) -> Optional[SingleDatapoint]:
+        """Get a single sensor datapoint before, after, or interpolated at a target time.
+        
+        Args:
+            sensor_id: ID of the sensor
+            target_time: Target datetime
+            direction: "before" for last reading before target_time,
+                      "after" for first reading after target_time,
+                      "interpolate" for linear interpolation between closest readings
+        """
+        
+        with get_db_session() as db:
+            if direction == "before":
+                # Get the last reading before the target time
+                reading = (
+                    db.query(SensorReadingModel)
+                    .filter(SensorReadingModel.sensor_id == sensor_id)
+                    .filter(SensorReadingModel.timestamp < target_time)
+                    .order_by(SensorReadingModel.timestamp.desc())
+                    .first()
+                )
+                
+                if reading:
+                    return SingleDatapoint(
+                        value=reading.value,
+                        timestamp=reading.timestamp,
+                        is_interpolated=False,
+                        source_readings=[SensorReading.from_model(reading)]
+                    )
+                    
+            elif direction == "after":
+                # Get the first reading after the target time
+                reading = (
+                    db.query(SensorReadingModel)
+                    .filter(SensorReadingModel.sensor_id == sensor_id)
+                    .filter(SensorReadingModel.timestamp > target_time)
+                    .order_by(SensorReadingModel.timestamp.asc())
+                    .first()
+                )
+                
+                if reading:
+                    return SingleDatapoint(
+                        value=reading.value,
+                        timestamp=reading.timestamp,
+                        is_interpolated=False,
+                        source_readings=[SensorReading.from_model(reading)]
+                    )
+                    
+            elif direction == "interpolate":
+                # Get the closest readings before and after target time
+                before_reading = (
+                    db.query(SensorReadingModel)
+                    .filter(SensorReadingModel.sensor_id == sensor_id)
+                    .filter(SensorReadingModel.timestamp < target_time)
+                    .order_by(SensorReadingModel.timestamp.desc())
+                    .first()
+                )
+                
+                after_reading = (
+                    db.query(SensorReadingModel)
+                    .filter(SensorReadingModel.sensor_id == sensor_id)
+                    .filter(SensorReadingModel.timestamp > target_time)
+                    .order_by(SensorReadingModel.timestamp.asc())
+                    .first()
+                )
+                
+                if before_reading and after_reading:
+                    # Linear interpolation
+                    t1 = before_reading.timestamp.timestamp()
+                    t2 = after_reading.timestamp.timestamp()
+                    target_t = target_time.timestamp()
+                    
+                    # Calculate interpolation factor
+                    factor = (target_t - t1) / (t2 - t1)
+                    interpolated_value = before_reading.value + factor * (after_reading.value - before_reading.value)
+                    
+                    return SingleDatapoint(
+                        value=interpolated_value,
+                        timestamp=target_time,
+                        is_interpolated=True,
+                        source_readings=[
+                            SensorReading.from_model(before_reading),
+                            SensorReading.from_model(after_reading)
+                        ]
+                    )
+                elif before_reading:
+                    # Only before reading available, return it
+                    return SingleDatapoint(
+                        value=before_reading.value,
+                        timestamp=before_reading.timestamp,
+                        is_interpolated=False,
+                        source_readings=[SensorReading.from_model(before_reading)]
+                    )
+                elif after_reading:
+                    # Only after reading available, return it
+                    return SingleDatapoint(
+                        value=after_reading.value,
+                        timestamp=after_reading.timestamp,
+                        is_interpolated=False,
+                        source_readings=[SensorReading.from_model(after_reading)]
+                    )
+            
+            return None
 
     @strawberry.field
     def alerts(

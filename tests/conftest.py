@@ -3,6 +3,7 @@ Test configuration and fixtures for Sensor API tests.
 """
 import os
 import pytest
+from datetime import datetime, timedelta
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from fastapi.testclient import TestClient
@@ -133,6 +134,30 @@ def sample_sensor_reading(test_db, sample_sensor):
     test_db.commit()
     test_db.refresh(reading)
     return reading
+
+
+@pytest.fixture
+def sample_sensor_with_readings(test_db, sample_sensor):
+    """Create a sensor with multiple time-series readings for testing."""
+    base_time = datetime.now()
+    readings = []
+    
+    # Create 3 readings with 5-minute intervals and different values
+    for i in range(3):
+        reading = SensorReading(
+            sensor_id=sample_sensor.id,
+            value=20.0 + i * 2.5,  # Values: 20.0, 22.5, 25.0
+            raw_value=20.0 + i * 2.5,
+            timestamp=base_time + timedelta(minutes=i * 5)
+        )
+        test_db.add(reading)
+        readings.append(reading)
+    
+    test_db.commit()
+    for reading in readings:
+        test_db.refresh(reading)
+    
+    return sample_sensor.id, readings
 
 
 # GraphQL Query Templates
