@@ -8,11 +8,12 @@ echo ""
 echo "Choose your deployment platform:"
 echo "1) Vercel (Fast, easy, great for prototypes)"
 echo "2) Azure Container Apps (Production-ready, more control)"
-echo "3) Local Docker testing"
-echo "4) Exit"
+echo "3) Hetzner Docker (Self-hosted, full control, cost-effective)"
+echo "4) Local Docker testing"
+echo "5) Exit"
 echo ""
 
-read -p "Enter your choice (1-4): " choice
+read -p "Enter your choice (1-5): " choice
 
 case $choice in
     1)
@@ -27,11 +28,16 @@ case $choice in
         ;;
     3)
         echo ""
+        echo "🏗️ Starting Hetzner Docker deployment..."
+        ./scripts/deploy-hetzner.sh
+        ;;
+    4)
+        echo ""
         echo "🐳 Starting local Docker setup..."
         echo "Building and running with Docker Compose..."
         docker-compose up --build
         ;;
-    4)
+    5)
         echo "Goodbye! 👋"
         exit 0
         ;;

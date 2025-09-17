@@ -80,29 +80,13 @@ chmod +x dev.sh && ./dev.sh dev
 
 ### Testing
 
-#### Testing Limitations
-**IMPORTANT**: Due to network connectivity issues in some environments, test dependencies may fail to install via pip. The core application functionality is available, but comprehensive testing requires manual setup.
+**Note**: Test files have been removed to streamline development and deployment. The application relies on manual testing, validation scenarios (see below), and production monitoring.
 
-```bash
-# REQUIRED: Activate virtual environment first  
-source .venv/bin/activate
-
-# Attempt to install test dependencies (may timeout)
-python run_tests.py install
-
-# If above fails, try manual installation
-pip install pytest pytest-asyncio httpx
-
-# Run available tests  
-python run_tests.py elementary     # Basic functionality tests
-python run_tests.py crud          # CRUD operation tests  
-python run_tests.py all           # All tests
-python run_tests.py coverage      # Tests with coverage report
-
-# Direct pytest usage (if installed)
-pytest                            # Run all tests
-pytest tests/test_elementary.py   # Specific test file
-```
+**Recommended Testing Approach**:
+- Use the validation scenarios below for manual testing
+- Test GraphQL queries in the playground at http://localhost:8000/graphql
+- Verify frontend functionality through browser testing
+- Monitor production deployments through application logs
 
 ### Code Quality and Linting
 
@@ -178,8 +162,7 @@ Always test these scenarios after making changes:
 
 ### Development Scripts
 - `setup.sh` - Environment setup
-- `dev.sh` - Development helper (migrate, start, test, format, check)
-- `run_tests.py` - Test runner with multiple suites
+- `dev.sh` - Development helper (migrate, start, format, check)
 
 ### Configuration Files
 - `.env` - Environment variables (copy from `.env.example`)
@@ -192,11 +175,6 @@ Always test these scenarios after making changes:
 - `CLAUDE.md` - AI assistant specific guidance
 - `CONTRIBUTING.md` - Development guidelines
 - `DEPLOYMENT.md` - Deployment instructions
-
-### Testing
-- `tests/` - Python test suites
-- `tests/test_elementary.py` - Basic functionality tests
-- `tests/conftest.py` - Test configuration
 
 ## Troubleshooting
 
@@ -222,9 +200,35 @@ Always test these scenarios after making changes:
 - **Frontend Build**: ~8 seconds (set timeout to 30+ seconds)
 - **Frontend Lint**: ~2 seconds (will show TypeScript errors)
 - **Python Package Installation**: May timeout due to network issues
-- **Test Suite**: Depends on database connectivity and test dependency availability
+- **Application Startup**: Backend ~3-5 seconds, Frontend dev server ~2-3 seconds
 
 **NEVER CANCEL** long-running builds or installs - they may be working despite appearing stuck.
+
+## Port Reference
+
+| Service | Port | URL | Purpose |
+|---------|------|-----|----------|
+| Backend API | 8000 | http://localhost:8000 | FastAPI + GraphQL |
+| GraphQL Playground | 8000 | http://localhost:8000/graphql | Query interface |
+| API Documentation | 8000 | http://localhost:8000/docs | Swagger/OpenAPI docs |
+| Frontend Dev | 5173 | http://localhost:5173 | Vite development server |
+| Frontend Preview | 5173 | http://localhost:5173 | Production build preview |
+
+## Environment Variables
+
+Key settings for `.env` file:
+```bash
+# Database (Required - PostgreSQL only)
+DATABASE_URL=postgresql://user:password@localhost:5432/sensorapi
+
+# Application
+ENVIRONMENT=development
+DEBUG=true
+SECRET_KEY=your-secret-key-here
+
+# Optional: CORS settings for frontend
+ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
+```
 
 ## Quick Reference Commands
 
