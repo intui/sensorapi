@@ -22,11 +22,10 @@ alembic==1.12.1
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 
-# Caching (optional but recommended)
-redis==5.0.1
+# Background Tasks  
 celery==5.3.4
 
-# Monitoring and logging
+# Monitoring and Logging
 prometheus-client==0.19.0
 structlog==23.2.0
 
