@@ -122,17 +122,17 @@ export const useOptimizedCOPData = ({
                 for (const period of timePeriods) {
                     try {
                         // Fetch readings around period start and end for both sensors
-                        // NOTE: Swapping electrical and thermal to fix inverted COP calculation
-                        // This suggests the sensor labeling may be incorrect in the database
+                        // BUGFIX: Swap sensor IDs because the sensors are mislabeled - 
+                        // electricalSensorId actually contains thermal data and vice versa
                         const [
-                            thermalStartResult,     // Using thermalSensorId to get what we'll use as electricalStart
-                            thermalEndResult,       // Using thermalSensorId to get what we'll use as electricalEnd
-                            electricalStartResult,  // Using electricalSensorId to get what we'll use as thermalStart
-                            electricalEndResult     // Using electricalSensorId to get what we'll use as thermalEnd
+                            electricalStartResult,
+                            electricalEndResult,
+                            thermalStartResult,
+                            thermalEndResult
                         ] = await Promise.all([
                             getReadingsAround({
                                 variables: {
-                                    sensorId: thermalSensorId,  // SWAPPED: was electricalSensorId
+                                    sensorId: thermalSensorId,  // SWAPPED: use thermal sensor for electrical data
                                     targetTime: period.start.toISOString(),
                                     before: 1,
                                     after: 1
@@ -140,7 +140,7 @@ export const useOptimizedCOPData = ({
                             }),
                             getReadingsAround({
                                 variables: {
-                                    sensorId: thermalSensorId,  // SWAPPED: was electricalSensorId
+                                    sensorId: thermalSensorId,  // SWAPPED: use thermal sensor for electrical data
                                     targetTime: period.end.toISOString(),
                                     before: 1,
                                     after: 1
@@ -148,7 +148,7 @@ export const useOptimizedCOPData = ({
                             }),
                             getReadingsAround({
                                 variables: {
-                                    sensorId: electricalSensorId,  // SWAPPED: was thermalSensorId
+                                    sensorId: electricalSensorId,  // SWAPPED: use electrical sensor for thermal data
                                     targetTime: period.start.toISOString(),
                                     before: 1,
                                     after: 1
@@ -156,7 +156,7 @@ export const useOptimizedCOPData = ({
                             }),
                             getReadingsAround({
                                 variables: {
-                                    sensorId: electricalSensorId,  // SWAPPED: was thermalSensorId
+                                    sensorId: electricalSensorId,  // SWAPPED: use electrical sensor for thermal data
                                     targetTime: period.end.toISOString(),
                                     before: 1,
                                     after: 1
