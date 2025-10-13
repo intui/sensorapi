@@ -273,9 +273,10 @@ const Sensors: React.FC = () => {
           isOpen={showForm || !!editingItem} 
           onClose={handleCloseModal}
           title={editingItem ? 'Edit Sensor' : 'Create New Sensor'}
+          maxWidth="4xl"
         >
           <form onSubmit={handleSubmit}>
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700">Device ID *</label>
                 <input
@@ -355,7 +356,7 @@ const Sensors: React.FC = () => {
                   className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
-              <div className="sm:col-span-2">
+              <div className="sm:col-span-2 lg:col-span-3">
                 <label className="block text-sm font-medium text-gray-700">Description</label>
                 <textarea
                   value={formData.description}
