@@ -90,7 +90,7 @@ class Sensor(Base):
     __tablename__ = "api_sensors"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    device_id = Column(String(100), unique=True, nullable=False, index=True)  # Hardware device ID
+    device_id = Column(String(100), unique=False, nullable=True, index=True)  # Hardware device ID (optional)
     name = Column(String(200), nullable=False)
     description = Column(Text)
     

@@ -85,7 +85,7 @@ class Sensor:
     """GraphQL type for sensors."""
 
     id: str
-    device_id: str
+    device_id: Optional[str]
     name: str
     description: Optional[str]
     sensor_type_id: str
@@ -288,7 +288,7 @@ class CreateLocationInput:
 class CreateSensorInput:
     """Input for creating a new sensor."""
 
-    device_id: str
+    device_id: Optional[str] = None
     name: str
     description: Optional[str] = None
     sensor_type_id: str

@@ -32,7 +32,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, maxWidt
         />
 
         {/* Modal panel */}
-        <div className={`inline-block w-full ${maxWidthClass} p-4 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-lg`}>
+        <div className={`relative z-10 inline-block w-full ${maxWidthClass} p-4 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-lg`}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-medium text-gray-900">
               {title}
