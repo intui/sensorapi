@@ -5,6 +5,7 @@ from contextlib import contextmanager
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
 
@@ -19,10 +20,12 @@ if "postgresql" in active_db_url:
         'application_name': f'sensorapi-{settings.DATABASE_PROVIDER}'  # Identify our app in DB logs
     }
 
+# For serverless environments (like Vercel), use NullPool to avoid connection exhaustion
+# NullPool creates a new connection for each request and closes it immediately
 engine = create_engine(
     active_db_url,
     echo=settings.DEBUG,  # Log SQL queries in debug mode
-    poolclass=None,  # Use NullPool - create fresh connections for each request
+    poolclass=NullPool,  # Critical for serverless - no connection pooling
     pool_pre_ping=False,  # Don't ping since we're creating fresh connections
     connect_args=connect_args,
 )
