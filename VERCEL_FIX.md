@@ -1,12 +1,15 @@
 # Vercel Deployment Fix - Connection Pool Exhaustion
 
 ## Problem
+
 The Vercel deployment was failing with error:
+
 ```
 remaining connection slots are reserved for roles with the SUPERUSER attribute
 ```
 
 This occurred because:
+
 1. **Table creation at import time** - `Base.metadata.create_all()` was running every time a serverless function started
 2. **Connection pooling misconfiguration** - Not using NullPool properly for serverless
 3. **Connection leaks** - Connections weren't being disposed properly
@@ -14,12 +17,14 @@ This occurred because:
 ## Changes Made
 
 ### 1. Fixed `api/main.py`
+
 - ✅ Removed `Base.metadata.create_all(bind=engine)` from module-level code
 - ✅ Added shutdown event to dispose of connections properly
 - ✅ Enhanced health check endpoint to test database connectivity
 - ⚠️ **Important**: Tables must exist before deployment (use migrations)
 
 ### 2. Fixed `app/database/database.py`
+
 - ✅ Explicitly imported and used `NullPool` for serverless environments
 - ✅ Added detailed comments about serverless connection management
 - ✅ Proper configuration for connection timeout and app identification
@@ -27,10 +32,12 @@ This occurred because:
 ## What This Means
 
 ### For Development (Local)
+
 - Tables are created via Alembic migrations: `alembic upgrade head`
 - No behavior change for local development
 
 ### For Production (Vercel)
+
 - **CRITICAL**: Database tables MUST exist before deployment
 - Each serverless function creates a fresh connection
 - Connections are disposed after each request
@@ -41,6 +48,7 @@ This occurred because:
 Before deploying to Vercel:
 
 1. **Ensure Database is Migrated**
+
    ```bash
    # Run migrations on your production database
    alembic upgrade head
@@ -53,6 +61,7 @@ Before deploying to Vercel:
    - Any other required environment variables
 
 3. **Test Locally First**
+
    ```bash
    # Activate virtual environment
    source .venv/bin/activate
@@ -66,6 +75,7 @@ Before deploying to Vercel:
    ```
 
 4. **Deploy to Vercel**
+
    ```bash
    # Commit changes
    git add .
@@ -84,13 +94,17 @@ Before deploying to Vercel:
 ## Database Connection Management
 
 ### Aiven Connection Limits
+
 Check your Aiven plan's connection limits:
+
 - **Hobbyist**: 25 connections
 - **Startup**: 100 connections
 - **Business**: 200+ connections
 
 ### Monitoring Connections
+
 Connect to your Aiven database and run:
+
 ```sql
 -- Check current connections
 SELECT count(*) FROM pg_stat_activity;
@@ -106,9 +120,10 @@ GROUP BY application_name;
 
 ## Troubleshooting
 
-### If deployment still fails:
+### If deployment still fails
 
 1. **Check Vercel Logs**
+
    ```bash
    vercel logs
    ```
@@ -119,6 +134,7 @@ GROUP BY application_name;
    - Verify connection string format
 
 3. **Test Connection Locally**
+
    ```python
    from sqlalchemy import create_engine, text
    from sqlalchemy.pool import NullPool
@@ -140,13 +156,15 @@ GROUP BY application_name;
 
 ## Additional Recommendations
 
-### For Better Scalability:
+### For Better Scalability
+
 1. **Consider Connection Pooling Service**
    - Use PgBouncer or Aiven's connection pooling
    - Reduces database connection load
    - Better for high-traffic applications
 
 2. **Implement Query Timeout**
+
    ```python
    connect_args = {
        'connect_timeout': 10,
@@ -158,22 +176,25 @@ GROUP BY application_name;
    - Configure in `vercel.json` if needed
    - Prevents long-running connections
 
-### For Monitoring:
+### For Monitoring
+
 1. **Add Application Monitoring**
    - Sentry for error tracking
    - DataDog or New Relic for APM
-   
+
 2. **Database Monitoring**
    - Enable Aiven metrics
    - Set up alerts for connection count
    - Monitor query performance
 
 ## Files Changed
+
 - ✅ `api/main.py` - Removed table creation, added connection disposal
 - ✅ `app/database/database.py` - Explicit NullPool configuration
 - 📝 `VERCEL_FIX.md` - This documentation
 
 ## Next Steps
+
 1. Run migrations on production database
 2. Commit and push these changes
 3. Deploy to Vercel
