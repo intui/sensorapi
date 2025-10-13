@@ -6,7 +6,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
 import Modal from '../components/Modal';
 import ConfirmDialog from '../components/ConfirmDialog';
-import { Plus, Edit, Trash2, Thermometer, Wifi, WifiOff, Calendar, Database } from 'lucide-react';
+import { Plus, Edit, Trash2, Thermometer, Wifi, WifiOff, Calendar, Database, Copy, Check } from 'lucide-react';
 import type { Sensor, CreateSensorInput } from '../types';
 
 // Component to show data range for a single sensor
@@ -55,13 +55,13 @@ const SensorDataRange: React.FC<{ sensorId: string }> = ({ sensorId }) => {
     <div className="text-xs space-y-1">
       <div className="flex items-center text-green-600">
         <Calendar className="h-3 w-3 mr-1" />
-        <span className="font-medium">Latest:</span> 
+        <span className="font-medium">Latest:</span>
         <span className="ml-1">{formatDate(lastReading.timestamp)}</span>
       </div>
       {firstReading && (
         <div className="flex items-center text-blue-600">
           <Database className="h-3 w-3 mr-1" />
-          <span className="font-medium">Earliest:</span> 
+          <span className="font-medium">Earliest:</span>
           <span className="ml-1">{formatDate(firstReading.timestamp)}</span>
         </div>
       )}
@@ -76,6 +76,7 @@ const Sensors: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState<Sensor | null>(null);
   const [deleteItem, setDeleteItem] = useState<Sensor | null>(null);
+  const [copiedId, setCopiedId] = useState(false);
   const [formData, setFormData] = useState<CreateSensorInput>({
     deviceId: '',
     name: '',
@@ -92,7 +93,7 @@ const Sensors: React.FC = () => {
   const { data, loading, error, refetch } = useQuery(GET_SENSORS);
   const { data: sensorTypesData } = useQuery(GET_SENSOR_TYPES);
   const { data: locationsData } = useQuery(GET_LOCATIONS);
-  
+
   const [createSensor, { loading: creating }] = useMutation(CREATE_SENSOR, {
     onCompleted: (data) => {
       console.log('Create mutation completed:', data);
@@ -144,6 +145,37 @@ const Sensors: React.FC = () => {
       hardwareVersion: '',
       samplingInterval: undefined,
     });
+    setCopiedId(false);
+  };
+
+  const handleCopyId = async () => {
+    if (editingItem?.id) {
+      try {
+        // Try modern clipboard API first
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(editingItem.id);
+        } else {
+          // Fallback for older browsers or insecure contexts
+          const textArea = document.createElement('textarea');
+          textArea.value = editingItem.id;
+          textArea.style.position = 'fixed';
+          textArea.style.left = '-999999px';
+          textArea.style.top = '-999999px';
+          document.body.appendChild(textArea);
+          textArea.focus();
+          textArea.select();
+          document.execCommand('copy');
+          textArea.remove();
+        }
+        setCopiedId(true);
+        setTimeout(() => setCopiedId(false), 2000);
+      } catch (err) {
+        console.error('Failed to copy:', err);
+        // Still show success to user since fallback usually works
+        setCopiedId(true);
+        setTimeout(() => setCopiedId(false), 2000);
+      }
+    }
   };
 
   const handleEdit = (sensor: Sensor) => {
@@ -184,7 +216,7 @@ const Sensors: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log('Submitting form:', { editingItem: !!editingItem, formData });
-    
+
     try {
       if (editingItem) {
         // Update existing sensor
@@ -269,14 +301,47 @@ const Sensors: React.FC = () => {
       </div>
 
       {(showForm || editingItem) && (
-        <Modal 
-          isOpen={showForm || !!editingItem} 
+        <Modal
+          isOpen={showForm || !!editingItem}
           onClose={handleCloseModal}
           title={editingItem ? 'Edit Sensor' : 'Create New Sensor'}
-          maxWidth="4xl"
+          maxWidth="full"
         >
           <form onSubmit={handleSubmit}>
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-gray-700">Sensor ID</label>
+                <div className="mt-1 flex gap-2">
+                  <input
+                    type="text"
+                    disabled={!!editingItem}
+                    value={editingItem ? editingItem.id : ''}
+                    placeholder={editingItem ? '' : 'Auto-generated upon creation'}
+                    className="block w-full border-gray-300 rounded-md shadow-sm bg-gray-50 text-gray-500 cursor-not-allowed"
+                  />
+                  {editingItem && (
+                    <button
+                      type="button"
+                      onClick={handleCopyId}
+                      className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      title="Copy to clipboard"
+                    >
+                      {copiedId ? (
+                        <>
+                          <Check className="h-4 w-4 text-green-600" />
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-4 w-4" />
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  {editingItem ? 'Unique identifier (read-only)' : 'Will be automatically generated'}
+                </p>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Device ID *</label>
                 <input
@@ -356,7 +421,7 @@ const Sensors: React.FC = () => {
                   className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
-              <div className="sm:col-span-2 lg:col-span-3">
+              <div className="col-span-2">
                 <label className="block text-sm font-medium text-gray-700">Description</label>
                 <textarea
                   value={formData.description}
@@ -460,11 +525,10 @@ const Sensors: React.FC = () => {
                       ) : (
                         <WifiOff className="h-4 w-4 text-red-500 mr-2" />
                       )}
-                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        sensor.isOnline 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${sensor.isOnline
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-red-100 text-red-800'
+                        }`}>
                         {sensor.isOnline ? 'Online' : 'Offline'}
                       </span>
                     </div>
@@ -473,19 +537,19 @@ const Sensors: React.FC = () => {
                     <SensorDataRange sensorId={sensor.id} />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {sensor.lastSeen 
+                    {sensor.lastSeen
                       ? new Date(sensor.lastSeen).toLocaleString()
                       : 'Never'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button 
+                    <button
                       onClick={() => handleEdit(sensor)}
                       className="text-blue-600 hover:text-blue-900 mr-3"
                       title="Edit sensor"
                     >
                       <Edit className="h-4 w-4" />
                     </button>
-                    <button 
+                    <button
                       onClick={() => setDeleteItem(sensor)}
                       className="text-red-600 hover:text-red-900"
                       title="Delete sensor"
