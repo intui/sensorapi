@@ -22,7 +22,9 @@ from app.graphql.types import (Alert, CreateLocationInput, CreateSensorInput,
                                SensorDataStats, SensorDataRange, SensorReadingsAround,
                                UpdateAlertInput, UpdateLocationInput,
                                UpdateSensorInput, UpdateSensorReadingInput,
-                               UpdateSensorStatusInput, UpdateSensorTypeInput)
+                               UpdateSensorStatusInput, UpdateSensorTypeInput,
+                               WeatherForecastPoint, EnergyPredictionPointType,
+                               ModelInfoType, PredictionResultType, TrainModelInput)
 
 
 @strawberry.type
@@ -222,6 +224,94 @@ class Query:
 
             models = query.all()
             return [Alert.from_model(model) for model in models]
+
+    @strawberry.field
+    def weather_forecast(
+        self,
+        info: Info,
+        location_id: str,
+        hours: int = 96,
+    ) -> List[WeatherForecastPoint]:
+        """Get weather forecast for a location."""
+        from app.services.weather import fetch_forecast
+
+        with get_db_session() as db:
+            location = db.query(LocationModel).filter(LocationModel.id == location_id).first()
+            if not location:
+                raise ValueError(f"Location not found: {location_id}")
+            if location.latitude is None or location.longitude is None:
+                raise ValueError(
+                    f"Location '{location.name}' does not have coordinates configured. "
+                    f"Please set latitude and longitude in the location settings."
+                )
+
+        hours = max(1, min(hours, 384))
+        data = fetch_forecast(location.latitude, location.longitude, hours)
+        return [
+            WeatherForecastPoint(
+                timestamp=p.timestamp,
+                temperature=p.temperature,
+                humidity=p.humidity,
+                wind_speed=p.wind_speed,
+                precipitation=p.precipitation,
+                cloud_cover=p.cloud_cover,
+            )
+            for p in data
+        ]
+
+    @strawberry.field
+    def energy_predictions(
+        self,
+        info: Info,
+        electrical_sensor_id: str,
+        thermal_sensor_id: str,
+        location_id: str,
+        hours: int = 96,
+    ) -> PredictionResultType:
+        """Get energy predictions based on weather forecast."""
+        from app.services.weather import fetch_forecast
+        from app.services.prediction import predict_energy
+
+        with get_db_session() as db:
+            location = db.query(LocationModel).filter(LocationModel.id == location_id).first()
+            if not location:
+                raise ValueError(f"Location not found: {location_id}")
+            if location.latitude is None or location.longitude is None:
+                raise ValueError(
+                    f"Location '{location.name}' does not have coordinates. "
+                    f"Please set latitude and longitude first."
+                )
+
+        hours = max(1, min(hours, 384))
+        forecast = fetch_forecast(location.latitude, location.longitude, hours)
+        result = predict_energy(forecast, electrical_sensor_id, thermal_sensor_id)
+
+        return PredictionResultType(
+            predictions=[
+                EnergyPredictionPointType(
+                    timestamp=p.timestamp,
+                    temperature=p.temperature,
+                    predicted_electrical_kwh=p.predicted_electrical_kwh,
+                    predicted_thermal_kwh=p.predicted_thermal_kwh,
+                    predicted_cop=p.predicted_cop,
+                    confidence_low_electrical=p.confidence_low_electrical,
+                    confidence_high_electrical=p.confidence_high_electrical,
+                    confidence_low_thermal=p.confidence_low_thermal,
+                    confidence_high_thermal=p.confidence_high_thermal,
+                )
+                for p in result.predictions
+            ],
+            total_electrical_kwh=result.total_electrical_kwh,
+            total_thermal_kwh=result.total_thermal_kwh,
+            average_cop=result.average_cop,
+            model_info=ModelInfoType(
+                r2_electrical=result.model_info.r2_electrical,
+                r2_thermal=result.model_info.r2_thermal,
+                training_samples=result.model_info.training_samples,
+                trained_at=result.model_info.trained_at,
+                feature_names=result.model_info.feature_names,
+            ),
+        )
 
 
 # Nested field resolvers
@@ -609,6 +699,56 @@ class Mutation:
             db.delete(model)
             db.commit()
             return True
+
+    @strawberry.mutation
+    def train_prediction_model(self, info: Info, input: TrainModelInput) -> ModelInfoType:
+        """Train (or retrain) a prediction model from historical data."""
+        from app.services.prediction import train_model
+
+        with get_db_session() as db:
+            # Validate location
+            location = db.query(LocationModel).filter(LocationModel.id == input.location_id).first()
+            if not location:
+                raise ValueError(f"Location not found: {input.location_id}")
+            if location.latitude is None or location.longitude is None:
+                raise ValueError(
+                    f"Location '{location.name}' does not have coordinates configured."
+                )
+
+            # Fetch historical readings
+            elec_readings = (
+                db.query(SensorReadingModel)
+                .filter(SensorReadingModel.sensor_id == input.electrical_sensor_id)
+                .order_by(SensorReadingModel.timestamp.asc())
+                .all()
+            )
+            therm_readings = (
+                db.query(SensorReadingModel)
+                .filter(SensorReadingModel.sensor_id == input.thermal_sensor_id)
+                .order_by(SensorReadingModel.timestamp.asc())
+                .all()
+            )
+
+            readings_e = [{"timestamp": r.timestamp.isoformat(), "value": r.value} for r in elec_readings]
+            readings_t = [{"timestamp": r.timestamp.isoformat(), "value": r.value} for r in therm_readings]
+
+        result = train_model(
+            readings_electrical=readings_e,
+            readings_thermal=readings_t,
+            latitude=location.latitude,
+            longitude=location.longitude,
+            electrical_sensor_id=input.electrical_sensor_id,
+            thermal_sensor_id=input.thermal_sensor_id,
+            lookback_days=input.lookback_days,
+        )
+
+        return ModelInfoType(
+            r2_electrical=result.r2_electrical,
+            r2_thermal=result.r2_thermal,
+            training_samples=result.training_samples,
+            trained_at=result.trained_at,
+            feature_names=result.feature_names,
+        )
 
 
 # Create schema

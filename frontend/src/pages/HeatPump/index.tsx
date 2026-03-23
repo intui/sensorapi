@@ -4,15 +4,20 @@ import SensorSelector from './components/SensorSelector';
 import TimeControls from './components/TimeControls';
 import EnergyChart from './components/EnergyChart';
 import COPChart from './components/COPChart';
+import WeatherPreview from './components/WeatherPreview';
+import PredictionChart from './components/PredictionChart';
+import PredictionSummary from './components/PredictionSummary';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { useKwhSensors } from './hooks/useSensorData';
 import { useOptimizedCOPData } from './hooks/useOptimizedCOPData';
+import { usePrediction } from './hooks/usePrediction';
 import type {
   TimeRangeType,
   AggregationType,
   TimeRange,
   SensorSelection
 } from './types/heatpump.types';
+import type { PredictionHorizon } from './types/prediction.types';
 
 const HeatPumpPage: React.FC = () => {
   const [sensorSelection, setSensorSelection] = useState<SensorSelection>({
@@ -140,6 +145,36 @@ const HeatPumpPage: React.FC = () => {
 
   const isDataAvailable = sensorSelection.electricalSensorId && sensorSelection.thermalSensorId;
 
+  // --- Prediction ---
+  const [predictionHorizon, setPredictionHorizon] = useState<PredictionHorizon>('24h');
+
+  // Derive locationId from a selected sensor's location via the GET_SENSORS query
+  const sensorLocationId = useMemo((): string | null => {
+    if (!kwhSensors.length) return null;
+    const selectedId = sensorSelection.electricalSensorId ?? sensorSelection.thermalSensorId;
+    if (!selectedId) return null;
+    const sensor = kwhSensors.find((s) => s.id === selectedId);
+    return sensor?.locationId ?? null;
+  }, [kwhSensors, sensorSelection]);
+
+  const {
+    weatherData,
+    predictionData,
+    weatherLoading,
+    predictionLoading,
+    weatherError,
+    predictionError,
+    isTraining,
+    trainModel,
+    trainingResult,
+    trainingError,
+  } = usePrediction({
+    electricalSensorId: sensorSelection.electricalSensorId,
+    thermalSensorId: sensorSelection.thermalSensorId,
+    locationId: sensorLocationId,
+    horizon: predictionHorizon,
+  });
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -233,6 +268,43 @@ const HeatPumpPage: React.FC = () => {
           isLoading={dataLoading}
           error={dataError}
         />
+      </div>
+
+      {/* --- Prediction Section --- */}
+      <div style={{ marginTop: 32 }}>
+        <div style={{
+          borderTop: '2px solid #e2e8f0',
+          paddingTop: 24,
+        }}>
+          <PredictionSummary
+            prediction={predictionData}
+            horizon={predictionHorizon}
+            onHorizonChange={setPredictionHorizon}
+            onTrainModel={trainModel}
+            isTraining={isTraining}
+            trainingResult={trainingResult}
+            trainingError={trainingError}
+            predictionLoading={predictionLoading}
+            canPredict={!!sensorSelection.electricalSensorId && !!sensorSelection.thermalSensorId}
+          />
+        </div>
+
+        <div style={{ marginTop: 16 }}>
+          <WeatherPreview
+            data={weatherData}
+            loading={weatherLoading}
+            error={weatherError}
+          />
+        </div>
+
+        <div style={{ marginTop: 16 }}>
+          <PredictionChart
+            predictions={predictionData?.predictions ?? []}
+            horizon={predictionHorizon}
+            isLoading={predictionLoading}
+            error={predictionError}
+          />
+        </div>
       </div>
 
       {/* Data Summary */}

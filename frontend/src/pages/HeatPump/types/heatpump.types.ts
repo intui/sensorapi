@@ -2,6 +2,7 @@ export interface HeatPumpSensor {
   id: string;
   name: string;
   description?: string;
+  locationId?: string;
   sensorType: {
     id: string;
     name: string;

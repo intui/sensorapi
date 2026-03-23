@@ -125,6 +125,7 @@ export const useKwhSensors = () => {
         id: sensor.id,
         name: sensor.name,
         description: sensor.description,
+        locationId: sensor.location?.id ?? null,
         sensorType: {
           id: sensor.sensorType.id,
           name: sensor.sensorType.name,

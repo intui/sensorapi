@@ -408,3 +408,65 @@ class SensorReadingsAround:
     
     before: List[SensorReading]
     after: List[SensorReading]
+
+
+# --- Weather & Prediction types ---
+
+
+@strawberry.type
+class WeatherForecastPoint:
+    """A single hourly weather data point."""
+
+    timestamp: str
+    temperature: float
+    humidity: Optional[float]
+    wind_speed: Optional[float]
+    precipitation: Optional[float]
+    cloud_cover: Optional[int]
+
+
+@strawberry.type
+class EnergyPredictionPointType:
+    """A single hourly energy prediction."""
+
+    timestamp: str
+    temperature: float
+    predicted_electrical_kwh: float
+    predicted_thermal_kwh: float
+    predicted_cop: Optional[float]
+    confidence_low_electrical: float
+    confidence_high_electrical: float
+    confidence_low_thermal: float
+    confidence_high_thermal: float
+
+
+@strawberry.type
+class ModelInfoType:
+    """Information about a trained prediction model."""
+
+    r2_electrical: float
+    r2_thermal: float
+    training_samples: int
+    trained_at: str
+    feature_names: List[str]
+
+
+@strawberry.type
+class PredictionResultType:
+    """Complete prediction result with summary."""
+
+    predictions: List[EnergyPredictionPointType]
+    total_electrical_kwh: float
+    total_thermal_kwh: float
+    average_cop: Optional[float]
+    model_info: ModelInfoType
+
+
+@strawberry.input
+class TrainModelInput:
+    """Input for training a prediction model."""
+
+    electrical_sensor_id: str
+    thermal_sensor_id: str
+    location_id: str
+    lookback_days: int = 90

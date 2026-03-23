@@ -208,3 +208,20 @@ nav a.active {
   .lg\\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .lg\\:px-8 { padding-left: 2rem; padding-right: 2rem; }
 }
+
+/* Animations for prediction UI */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideDown {
+  from { opacity: 0; max-height: 0; }
+  to { opacity: 1; max-height: 200px; }
+}

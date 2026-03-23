@@ -116,3 +116,44 @@ export const GET_SENSOR_READINGS_AROUND = gql`
     }
   }
 `;
+
+export const GET_WEATHER_FORECAST = gql`
+  query GetWeatherForecast($locationId: String!, $hours: Int = 96) {
+    weatherForecast(locationId: $locationId, hours: $hours) {
+      timestamp
+      temperature
+      humidity
+      windSpeed
+      precipitation
+      cloudCover
+    }
+  }
+`;
+
+export const GET_ENERGY_PREDICTIONS = gql`
+  query GetEnergyPredictions($electricalSensorId: String!, $thermalSensorId: String!, $locationId: String!, $hours: Int = 96) {
+    energyPredictions(electricalSensorId: $electricalSensorId, thermalSensorId: $thermalSensorId, locationId: $locationId, hours: $hours) {
+      predictions {
+        timestamp
+        temperature
+        predictedElectricalKwh
+        predictedThermalKwh
+        predictedCop
+        confidenceLowElectrical
+        confidenceHighElectrical
+        confidenceLowThermal
+        confidenceHighThermal
+      }
+      totalElectricalKwh
+      totalThermalKwh
+      averageCop
+      modelInfo {
+        r2Electrical
+        r2Thermal
+        trainingSamples
+        trainedAt
+        featureNames
+      }
+    }
+  }
+`;

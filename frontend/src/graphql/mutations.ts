@@ -185,3 +185,15 @@ export const DELETE_SENSOR_READING = gql`
     deleteSensorReading(id: $id)
   }
 `;
+
+export const TRAIN_PREDICTION_MODEL = gql`
+  mutation TrainPredictionModel($input: TrainModelInput!) {
+    trainPredictionModel(input: $input) {
+      r2Electrical
+      r2Thermal
+      trainingSamples
+      trainedAt
+      featureNames
+    }
+  }
+`;
