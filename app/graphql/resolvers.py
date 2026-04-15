@@ -668,9 +668,13 @@ class Mutation:
             if not model:
                 return False
             
-            # First delete all sensor readings for this sensor
+            # Clear latest_reading_id FK before deleting readings to avoid constraint violation
+            model.latest_reading_id = None
+            db.flush()
+
+            # Delete all sensor readings for this sensor
             db.query(SensorReadingModel).filter(SensorReadingModel.sensor_id == id).delete()
-            
+
             # Then delete the sensor itself
             db.delete(model)
             db.commit()
