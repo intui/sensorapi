@@ -56,6 +56,7 @@ class Location:
     city: Optional[str]
     country: Optional[str]
     postal_code: Optional[str]
+    timezone: Optional[str]
     created_at: datetime
     updated_at: Optional[datetime]
     is_active: bool
@@ -74,6 +75,7 @@ class Location:
             city=model.city,
             country=model.country,
             postal_code=model.postal_code,
+            timezone=model.timezone,
             created_at=model.created_at,
             updated_at=model.updated_at,
             is_active=model.is_active,
@@ -282,6 +284,7 @@ class CreateLocationInput:
     city: Optional[str] = None
     country: Optional[str] = None
     postal_code: Optional[str] = None
+    timezone: Optional[str] = None
 
 
 @strawberry.input
@@ -336,6 +339,7 @@ class UpdateLocationInput:
     city: Optional[str] = None
     country: Optional[str] = None
     postal_code: Optional[str] = None
+    timezone: Optional[str] = None
 
 
 @strawberry.input

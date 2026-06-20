@@ -392,6 +392,7 @@ class Mutation:
                 longitude=input.longitude,
                 altitude=input.altitude,
                 parent_id=input.parent_id,
+                timezone=input.timezone,
             )
             db.add(model)
             db.commit()
@@ -517,8 +518,8 @@ class Mutation:
                 model.country = input.country
             if input.postal_code is not None:
                 model.postal_code = input.postal_code
-            if input.is_active is not None:
-                model.is_active = input.is_active
+            if input.timezone is not None:
+                model.timezone = input.timezone
 
             db.commit()
             db.refresh(model)
